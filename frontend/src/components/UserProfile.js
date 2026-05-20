@@ -159,7 +159,7 @@ export default function UserProfile() {
               <div className="modern-stat-content">
                 {totalHours >= 16 ? (
                   <>
-                    <div className="modern-stat-number" style={{ fontSize: '1.5rem' }}>100VOLUNTEER2025</div>
+                    <div className="modern-stat-number" style={{ fontSize: '1.5rem' }}>v0lunteer26</div>
                     <div className="modern-stat-label">100% Off Ticket Code!</div>
                     <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.5rem' }}>
                       ✨ Amazing! You've earned a free ticket!
@@ -167,7 +167,7 @@ export default function UserProfile() {
                   </>
                 ) : totalHours >= 8 ? (
                   <>
-                    <div className="modern-stat-number" style={{ fontSize: '1.5rem' }}>50VOLUNTEER2025</div>
+                    <div className="modern-stat-number" style={{ fontSize: '1.5rem' }}>v0lunteer2650</div>
                     <div className="modern-stat-label">50% Off Ticket Code!</div>
                     <div style={{ fontSize: '0.75rem', color: '#fbbf24', marginTop: '0.5rem' }}>
                       {16 - totalHours} more hours for 100% off!
