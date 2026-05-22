@@ -10,6 +10,7 @@ export default function AdminVolunteers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState("hours");
+  const [scope, setScope] = useState("currentEvent");
   const [phoneNumbers, setPhoneNumbers] = useState({});
 
   // Check user role
@@ -32,7 +33,8 @@ export default function AdminVolunteers() {
 
   const refresh = useCallback(() => {
     setLoading(true);
-    fetch(API("/api/admin/volunteers"), { headers: authHeader() })
+    const query = scope === "allTime" ? "?scope=allTime" : "";
+    fetch(API(`/api/admin/volunteers${query}`), { headers: authHeader() })
       .then((res) => res.json())
       .then((data) => {
         setVolunteers(data);
@@ -42,7 +44,7 @@ export default function AdminVolunteers() {
         console.error("Error fetching volunteers:", err);
         setLoading(false);
       });
-  }, []);
+  }, [scope]);
 
   // Fetch phone numbers 
   useEffect(() => {
@@ -150,7 +152,11 @@ export default function AdminVolunteers() {
       <div className="modern-header-section">
         <div className="modern-header-content">
           <h1 className="modern-page-title">👥 Volunteer Roster</h1>
-          <p className="modern-page-subtitle">Manage and monitor your volunteer community</p>
+          <p className="modern-page-subtitle">
+            {scope === "currentEvent"
+              ? "Volunteers signed up for the current event"
+              : "All volunteers, all time"}
+          </p>
         </div>
       </div>
 
@@ -209,6 +215,15 @@ export default function AdminVolunteers() {
                   </button>
                 )}
               </div>
+
+              <select
+                value={scope}
+                onChange={(e) => setScope(e.target.value)}
+                className="modern-sort-select"
+              >
+                <option value="currentEvent">Current event only</option>
+                <option value="allTime">All-time volunteers</option>
+              </select>
 
               <select
                 value={sortBy}
