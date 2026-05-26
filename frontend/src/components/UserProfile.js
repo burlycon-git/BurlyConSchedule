@@ -8,10 +8,8 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState([]);
 
-  // Build URLs 
   const API = (p) => `${process.env.REACT_APP_API_BASE || ""}${p}`;
 
-  // Get userId from JWT
   let userId = null;
   try {
     const token = localStorage.getItem("access_token");
@@ -23,7 +21,6 @@ export default function UserProfile() {
     console.error("Error parsing JWT:", error);
   }
 
-  // Fetch roles
   useEffect(() => {
     fetch(API("/api/shiftroles"))
       .then(res => res.json())
@@ -31,7 +28,6 @@ export default function UserProfile() {
       .catch(err => console.error("Error loading roles:", err));
   }, []);
 
-  // Fetch user shifts
   useEffect(() => {
     if (!userId) {
       setLoading(false);
@@ -52,9 +48,14 @@ export default function UserProfile() {
     })();
   }, [userId]);
 
-  // get role details
   const getRoleDetails = (roleName) => {
     return roles.find(r => r.name === roleName) || {};
+  };
+
+  // Round hours to 1 decimal, drop trailing zero
+  const roundHours = (h) => {
+    const n = Math.round((h || 0) * 10) / 10;
+    return Number.isInteger(n) ? n : n.toFixed(1);
   };
 
   const handleCancelShift = async (shiftId) => {
@@ -71,7 +72,6 @@ export default function UserProfile() {
       });
 
       if (response.ok) {
-        // Refresh
         const res2 = await fetch(API(`/api/volunteer/user/${userId}`));
         const data2 = await res2.json();
         setVolunteerShifts(data2.shifts || []);
@@ -105,15 +105,21 @@ export default function UserProfile() {
     });
   }
 
-  const grouped = volunteerShifts.reduce((acc, shift) => {
-    const key = `${shift.role}|${shift.date}`;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(shift);
+  // Group shifts by date instead of role|date
+  const groupedByDate = volunteerShifts.reduce((acc, shift) => {
+    if (!acc[shift.date]) acc[shift.date] = [];
+    acc[shift.date].push(shift);
     return acc;
   }, {});
 
+  const sortedDates = Object.keys(groupedByDate).sort();
+
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const userName = user?.preferredName || user?.given_name || user?.email?.split("@")[0] || "Volunteer";
+
+  const displayHours = roundHours(totalHours);
+  const hoursToHalf = Math.max(0, 8 - totalHours);
+  const hoursToFull = Math.max(0, 16 - totalHours);
 
   return (
     <div className="modern-page-container">
@@ -141,7 +147,7 @@ export default function UserProfile() {
             <div className="modern-stat-card hours">
               <div className="modern-stat-icon">⏰</div>
               <div className="modern-stat-content">
-                <div className="modern-stat-number">{totalHours}</div>
+                <div className="modern-stat-number">{displayHours}</div>
                 <div className="modern-stat-label">Hours Volunteered</div>
               </div>
             </div>
@@ -159,26 +165,26 @@ export default function UserProfile() {
               <div className="modern-stat-content">
                 {totalHours >= 16 ? (
                   <>
-                    <div className="modern-stat-number" style={{ fontSize: '1.5rem' }}>v0lunteer26</div>
+                    <div className="modern-stat-code">v0lunteer26</div>
                     <div className="modern-stat-label">100% Off Ticket Code!</div>
-                    <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.5rem' }}>
-                      ✨ Amazing! You've earned a free ticket!
+                    <div className="modern-stat-note success">
+                      ✨ You've earned a free ticket!
                     </div>
                   </>
                 ) : totalHours >= 8 ? (
                   <>
-                    <div className="modern-stat-number" style={{ fontSize: '1.5rem' }}>v0lunteer2650</div>
+                    <div className="modern-stat-code">v0lunteer2650</div>
                     <div className="modern-stat-label">50% Off Ticket Code!</div>
-                    <div style={{ fontSize: '0.75rem', color: '#fbbf24', marginTop: '0.5rem' }}>
-                      {16 - totalHours} more hours for 100% off!
+                    <div className="modern-stat-note warning">
+                      {roundHours(hoursToFull)} more hours for 100% off!
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="modern-stat-number">{totalHours}/8</div>
+                    <div className="modern-stat-number">{displayHours}/8</div>
                     <div className="modern-stat-label">Hours to 50% Off</div>
-                    <div style={{ fontSize: '0.75rem', color: '#d1d5db', marginTop: '0.5rem' }}>
-                      Sign up for {8 - totalHours} more hours to unlock your discount code!
+                    <div className="modern-stat-note muted">
+                      Sign up for {roundHours(hoursToHalf)} more hours to unlock your discount code!
                     </div>
                   </>
                 )}
@@ -216,66 +222,84 @@ export default function UserProfile() {
               </a>
             </div>
           ) : (
-            <div className="modern-shifts-grid">
-              {Object.entries(grouped).map(([key, shifts]) => {
-                const [role, date] = key.split("|");
-                const sorted = shifts
-                  .slice()
-                  .sort((a, b) => a.startTime.localeCompare(b.startTime));
-                
-                // Get role details for emergency contact
-                const roleDetails = getRoleDetails(role);
+            <div className="modern-day-list">
+              {sortedDates.map((date) => {
+                // Sort by start time within the day
+                const dayShifts = groupedByDate[date].sort((a, b) =>
+                  a.startTime.localeCompare(b.startTime)
+                );
+
+                // Annotate consecutive same-role shifts
+                const annotated = dayShifts.map((shift, i) => {
+                  const prev = dayShifts[i - 1];
+                  const continuesFromPrev =
+                    prev &&
+                    prev.role === shift.role &&
+                    prev.endTime === shift.startTime;
+                  const next = dayShifts[i + 1];
+                  const continuesToNext =
+                    next &&
+                    next.role === shift.role &&
+                    shift.endTime === next.startTime;
+                  return { ...shift, continuesFromPrev, continuesToNext };
+                });
 
                 return (
-                  <div key={key} className="modern-shift-card">
-                    <div className="modern-shift-header">
-                      <div className="modern-shift-role">
-                        <h3 className="modern-shift-title">{role}</h3>
-                        <p className="modern-shift-date">
-                          {formatLocalDateYMD(date)}
-                        </p>
-                      </div>
+                  <div key={date} className="modern-day-group">
+                    <div className="modern-day-header">
+                      {formatLocalDateYMD(date)}
                     </div>
+                    <div className="modern-day-shifts">
+                      {annotated.map((shift) => {
+                        const roleDetails = getRoleDetails(shift.role);
+                        const hasContact =
+                          roleDetails.location ||
+                          roleDetails.pointOfContact ||
+                          roleDetails.contactPhone;
 
-                    {/* Location and Emergency Contact */}
-                    {(roleDetails.location || roleDetails.pointOfContact || roleDetails.contactPhone) && (
-                      <div className="modern-shift-details">
-                        {roleDetails.location && (
-                          <div className="modern-detail-item">
-                            <span className="modern-detail-icon">📍</span>
-                            <span className="modern-detail-text">{roleDetails.location}</span>
-                          </div>
-                        )}
-                        {roleDetails.pointOfContact && (
-                          <div className="modern-detail-item">
-                            <span className="modern-detail-icon">👤</span>
-                            <span className="modern-detail-label">Lead: </span>
-                            <span className="modern-detail-text">{roleDetails.pointOfContact}</span>
-                          </div>
-                        )}
-                        {roleDetails.contactPhone && (
-                          <div className="modern-detail-item">
-                            <span className="modern-detail-icon">📞</span>
-                            <a href={`tel:${roleDetails.contactPhone}`} className="modern-detail-link">
-                              {roleDetails.contactPhone}
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="modern-shift-times">
-                      {sorted.map((shift) => {
-                        const start = formatTime(shift.startTime);
-                        const end = formatTime(shift.endTime);
                         return (
-                          <div key={shift._id} className="modern-shift-time-slot">
-                            <div className="modern-time-info">
-                              <span className="modern-time-icon">🕒</span>
-                              <span className="modern-time-range">
-                                {start} – {end}
-                              </span>
+                          <div
+                            key={shift._id}
+                            className={`modern-day-shift ${shift.continuesFromPrev ? "continues-from" : ""} ${shift.continuesToNext ? "continues-to" : ""}`}
+                          >
+                            <div className="modern-day-shift-main">
+                              <div className="modern-day-shift-role">
+                                {shift.role}
+                                {shift.continuesFromPrev && (
+                                  <span className="modern-day-shift-continues"> (continues)</span>
+                                )}
+                              </div>
+                              <div className="modern-day-shift-time">
+                                🕒 {formatTime(shift.startTime)} – {formatTime(shift.endTime)}
+                              </div>
                             </div>
+
+                            {hasContact && !shift.continuesFromPrev && (
+                              <div className="modern-day-shift-details">
+                                {roleDetails.location && (
+                                  <div className="modern-detail-item">
+                                    <span className="modern-detail-icon">📍</span>
+                                    <span className="modern-detail-text">{roleDetails.location}</span>
+                                  </div>
+                                )}
+                                {roleDetails.pointOfContact && (
+                                  <div className="modern-detail-item">
+                                    <span className="modern-detail-icon">👤</span>
+                                    <span className="modern-detail-label">Lead:</span>
+                                    <span className="modern-detail-text">{roleDetails.pointOfContact}</span>
+                                  </div>
+                                )}
+                                {roleDetails.contactPhone && (
+                                  <div className="modern-detail-item">
+                                    <span className="modern-detail-icon">📞</span>
+                                    <a href={`tel:${roleDetails.contactPhone}`} className="modern-detail-link">
+                                      {roleDetails.contactPhone}
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             <button
                               type="button"
                               className="modern-cancel-button"

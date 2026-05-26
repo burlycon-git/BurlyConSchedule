@@ -601,6 +601,92 @@
   .modern-empty-description { color: #e5e7eb; }
 }
 
+/* --- Day-grouped schedule view --- */
+
+.modern-day-group {
+  margin-bottom: 1.25rem;
+}
+
+.modern-day-group:last-child { margin-bottom: 0; }
+
+.modern-day-header {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #be185d;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(236, 72, 153, 0.2);
+  margin-bottom: 0.5rem;
+}
+
+.modern-day-shifts {
+  display: flex;
+  flex-direction: column;
+}
+
+.modern-day-shift {
+  background: rgba(236, 72, 153, 0.06);
+  border-left: 3px solid rgba(236, 72, 153, 0.5);
+  padding: 0.6rem 0.85rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+  margin-bottom: 0.4rem;
+}
+
+/* Visually link consecutive same-role shifts */
+.modern-day-shift.continues-to {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  margin-bottom: 0;
+  padding-bottom: 0.4rem;
+}
+
+.modern-day-shift.continues-from {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  padding-top: 0.4rem;
+  margin-top: -2px; /* tight visual link */
+  border-top: 1px dashed rgba(236, 72, 153, 0.4);
+}
+
+.modern-day-shift.continues-from .modern-day-shift-role {
+  opacity: 0.6;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.modern-day-shift-role {
+  font-weight: 600;
+  color: #be185d;
+  font-size: 0.95rem;
+  margin-bottom: 0.2rem;
+}
+
+.modern-day-shift-time {
+  font-size: 0.875rem;
+  color: #6b2d5c;
+}
+
+/* Dark mode for the schedule */
+@media (prefers-color-scheme: dark) {
+  .modern-day-header {
+    color: #f9a8d4;
+    border-bottom-color: rgba(236, 72, 153, 0.25);
+  }
+
+  .modern-day-shift {
+    background: rgba(236, 72, 153, 0.08);
+    border-left-color: rgba(244, 114, 182, 0.6);
+  }
+
+  .modern-day-shift-role { color: #f9a8d4; }
+  .modern-day-shift-time { color: #e5e7eb; }
+
+  .modern-day-shift.continues-from {
+    border-top-color: rgba(244, 114, 182, 0.4);
+  }
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .modern-volunteers-grid { grid-template-columns: 1fr; }

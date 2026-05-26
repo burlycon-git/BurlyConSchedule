@@ -327,40 +327,75 @@ export default function AdminVolunteers() {
                       </div>
                     )}
 
-                    {vol.shifts && vol.shifts.length > 0 ? (
-                      <div className="modern-volunteer-shifts">
-                        <h4 className="modern-shifts-title">📅 Upcoming Shifts ({vol.shifts.length})</h4>
-                        <div className="modern-shifts-list">
-                          {vol.shifts
-                            .sort((a, b) => new Date(a.date) - new Date(b.date))
-                            .map((shift) => (
-                              <div key={shift.id} className="modern-shift-item">
-                                <div className="modern-shift-role">
-                                  <span className="modern-role-name">{shift.role}</span>
-                                </div>
-                                <div className="modern-shift-details">
-                                  <span className="modern-shift-date">
-                                    {new Date(shift.date).toLocaleDateString(undefined, {
-                                      weekday: "short",
-                                      month: "short",
-                                      day: "numeric",
-                                    })}
-                                  </span>
-                                  <span className="modern-shift-time">
-                                    🕒 {formatTime(shift.startTime)}–{formatTime(shift.endTime)}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="modern-no-shifts">
-                        <span className="modern-no-shifts-icon">📅</span>
-                        <span className="modern-no-shifts-text">No upcoming shifts</span>
-                      </div>
-                    )}
+{vol.shifts && vol.shifts.length > 0 ? (
+  <div className="modern-volunteer-shifts">
+    <h4 className="modern-shifts-title">📅 Upcoming Shifts ({vol.shifts.length})</h4>
+    {(() => {
+      // Group by date
+      const byDate = vol.shifts.reduce((acc, s) => {
+        if (!acc[s.date]) acc[s.date] = [];
+        acc[s.date].push(s);
+        return acc;
+      }, {});
+
+      // Sort dates ascending
+      const sortedDates = Object.keys(byDate).sort();
+
+      return sortedDates.map((date) => {
+        // Sort shifts within day by start time
+        const dayShifts = byDate[date].sort((a, b) =>
+          a.startTime.localeCompare(b.startTime)
+        );
+
+        // Mark each shift as continuing from previous (same role + adjacent times)
+        const annotated = dayShifts.map((shift, i) => {
+          const prev = dayShifts[i - 1];
+          const continuesFromPrev =
+            prev &&
+            prev.role === shift.role &&
+            prev.endTime === shift.startTime;
+          const next = dayShifts[i + 1];
+          const continuesToNext =
+            next &&
+            next.role === shift.role &&
+            shift.endTime === next.startTime;
+          return { ...shift, continuesFromPrev, continuesToNext };
+        });
+
+        return (
+          <div key={date} className="modern-day-group">
+            <div className="modern-day-header">
+              {new Date(date + "T12:00:00").toLocaleDateString(undefined, {
+                weekday: "long",
+                month: "short",
+                day: "numeric",
+              })}
+            </div>
+            <div className="modern-day-shifts">
+              {annotated.map((shift) => (
+                <div
+                  key={shift.id}
+                  className={`modern-day-shift ${shift.continuesFromPrev ? "continues-from" : ""} ${shift.continuesToNext ? "continues-to" : ""}`}
+                >
+                  <div className="modern-day-shift-role">{shift.role}</div>
+                  <div className="modern-day-shift-time">
+                    🕒 {formatTime(shift.startTime)} – {formatTime(shift.endTime)}
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      });
+    })()}
+  </div>
+) : (
+  <div className="modern-no-shifts">
+    <span className="modern-no-shifts-icon">📅</span>
+    <span className="modern-no-shifts-text">No upcoming shifts</span>
+  </div>
+)}
+</div>
                 );
               })}
             </div>
