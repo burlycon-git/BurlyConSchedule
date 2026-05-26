@@ -14,12 +14,13 @@ const scheduleImages = {
 };
 
 export default function VolunteerShifts() {
-  const [selectedDate, setSelectedDate] = useState("2026-11-04");
+  const [selectedDate, setSelectedDate] = useState(null);
   const [shifts, setShifts] = useState([]);
   const [roleDetails, setRoleDetails] = useState({});
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expandedRole, setExpandedRole] = useState(null);
+  const [defaultDateChosen, setDefaultDateChosen] = useState(false);
 
   const dateOptions = [
     { label: "Wed 11/4", value: "2026-11-04", day: "Wednesday" },
@@ -56,7 +57,39 @@ export default function VolunteerShifts() {
       .catch((err) => console.error("Error fetching role details:", err));
   }, []);
 
+  // First load: pick the latest day with openings as the default
   useEffect(() => {
+    if (defaultDateChosen) return;
+    fetch(`${process.env.REACT_APP_API_BASE}/api/volunteer`)
+      .then((res) => res.json())
+      .then((data) => {
+        // Walk dates from Sunday backward, find first day with at least one open spot
+        const datesReversed = [...dateOptions].reverse().map((d) => d.value);
+        let chosen = datesReversed[0]; // fallback to Sunday
+        for (const d of datesReversed) {
+          const dayShifts = data.filter((s) => s.date === d);
+          const hasOpening = dayShifts.some(
+            (s) => s.volunteersNeeded - s.volunteersRegistered.length > 0
+          );
+          if (hasOpening) {
+            chosen = d;
+            break;
+          }
+        }
+        setSelectedDate(chosen);
+        setDefaultDateChosen(true);
+      })
+      .catch((err) => {
+        console.error("Error picking default date:", err);
+        setSelectedDate("2026-11-08"); // fallback
+        setDefaultDateChosen(true);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch shifts for the selected day
+  useEffect(() => {
+    if (!selectedDate) return;
     setLoading(true);
     fetch(`${process.env.REACT_APP_API_BASE}/api/volunteer`)
       .then((res) => res.json())
@@ -80,7 +113,6 @@ export default function VolunteerShifts() {
 
   const handleSignup = async (shiftId) => {
     if (!userId) return;
-
     try {
       const res = await fetch(
         `${process.env.REACT_APP_API_BASE}/api/volunteer/${shiftId}/signup`,
@@ -90,7 +122,6 @@ export default function VolunteerShifts() {
           body: JSON.stringify({ userId }),
         },
       );
-
       if (res.ok) {
         setShifts((prev) =>
           prev.map((shift) =>
@@ -110,7 +141,6 @@ export default function VolunteerShifts() {
 
   const handleCancel = async (shiftId) => {
     if (!userId) return;
-
     try {
       const res = await fetch(
         `${process.env.REACT_APP_API_BASE}/api/volunteer/${shiftId}/cancel`,
@@ -120,7 +150,6 @@ export default function VolunteerShifts() {
           body: JSON.stringify({ userId }),
         },
       );
-
       if (res.ok) {
         setShifts((prev) =>
           prev.map((shift) =>
@@ -255,21 +284,7 @@ export default function VolunteerShifts() {
           ) : (
             <div className="modern-roles-grid">
               {Object.entries(grouped)
-                .sort(([, aShifts], [, bShifts]) => {
-                  const aOpen = aShifts.reduce(
-                    (sum, s) =>
-                      sum +
-                      (s.volunteersNeeded - s.volunteersRegistered.length),
-                    0,
-                  );
-                  const bOpen = bShifts.reduce(
-                    (sum, s) =>
-                      sum +
-                      (s.volunteersNeeded - s.volunteersRegistered.length),
-                    0,
-                  );
-                  return bOpen - aOpen; // most-needy first
-                })
+                .sort(([a], [b]) => a.localeCompare(b))
                 .map(([role, roleShifts]) => {
                   const roleInfo = roleDetails[role] || {};
                   const isExpanded = expandedRole === role;
@@ -308,7 +323,6 @@ export default function VolunteerShifts() {
                       {isExpanded && (
                         <div className="modern-role-details">
                           <div className="modern-role-details-content">
-                            {/* Task Description from shifts */}
                             {roleShifts[0]?.taskDescription && (
                               <div className="modern-detail-section">
                                 <h4 className="modern-detail-title">
@@ -321,7 +335,6 @@ export default function VolunteerShifts() {
                               </div>
                             )}
 
-                            {/* Role Responsibilities */}
                             {roleInfo.responsibilities && (
                               <div className="modern-detail-section">
                                 <h4 className="modern-detail-title">
@@ -334,7 +347,6 @@ export default function VolunteerShifts() {
                               </div>
                             )}
 
-                            {/* Location */}
                             {roleInfo.location && (
                               <div className="modern-detail-section">
                                 <h4 className="modern-detail-title">
@@ -347,7 +359,6 @@ export default function VolunteerShifts() {
                               </div>
                             )}
 
-                            {/* Physical Requirements */}
                             {roleInfo.physicalRequirements && (
                               <div className="modern-detail-section">
                                 <h4 className="modern-detail-title">
@@ -359,31 +370,7 @@ export default function VolunteerShifts() {
                                 </p>
                               </div>
                             )}
-                            {/*commented out to remove contact info section from public view
-                           Contact Information
-                          {(roleInfo.pointOfContact || roleInfo.contactPhone) && (
-                            <div className="modern-detail-section">
-                              <h4 className="modern-detail-title">
-                                <span className="modern-detail-icon">👤</span>
-                                Point of Contact
-                              </h4>
-                              <div className="modern-contact-info">
-                                {roleInfo.pointOfContact && (
-                                  <p className="modern-contact-name">{roleInfo.pointOfContact}</p>
-                                )}
-                                {roleInfo.contactPhone && (
-                                  <a 
-                                    href={`tel:${roleInfo.contactPhone}`} 
-                                    className="modern-contact-phone"
-                                  >
-                                    📞 {roleInfo.contactPhone}
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          )} */}
 
-                            {/* Admin Notes */}
                             {roleShifts.some((shift) => shift.notes) && (
                               <div className="modern-detail-section">
                                 <h4 className="modern-detail-title">
@@ -430,21 +417,6 @@ export default function VolunteerShifts() {
                                     {to12Hour(shift.endTime)}
                                   </span>
                                 </div>
-
-                                {/* <div className="modern-shift-availability">
-                                <span
-                                  className={`modern-availability-badge ${
-                                    available <= 0
-                                      ? "full"
-                                      : available <= 2
-                                      ? "low"
-                                      : "available"
-                                  }`}
-                                >
-                                  {available} spot{available !== 1 ? "s" : ""}{" "}
-                                  left
-                                </span>
-                              </div> */}
 
                                 <div className="modern-shift-action">
                                   {!userId ? (
