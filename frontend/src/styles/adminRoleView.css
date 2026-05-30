@@ -1,6 +1,8 @@
+/* Light defaults; dark mode override at the bottom */
+
 .role-view-back {
   display: inline-block;
-  color: #f9a8d4;
+  color: #be185d;
   text-decoration: none;
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
@@ -16,56 +18,57 @@
 }
 
 .role-view-stat {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(236, 72, 153, 0.2);
   border-radius: 10px;
   padding: 0.9rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.06);
 }
 
-.role-view-stat.critical { border-color: rgba(239, 68, 68, 0.35); }
+.role-view-stat.critical { border-color: rgba(239, 68, 68, 0.45); }
 
 .role-view-stat-number {
   font-size: 1.6rem;
   font-weight: 700;
-  color: #f9a8d4;
+  color: #be185d;
 }
 
-.role-view-stat.critical .role-view-stat-number { color: #fca5a5; }
+.role-view-stat.critical .role-view-stat-number { color: #b91c1c; }
 
 .role-view-stat-label {
   font-size: 0.8rem;
-  opacity: 0.7;
+  color: #6b2d5c;
 }
 
 .role-view-details {
   margin-bottom: 1.5rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(236, 72, 153, 0.15);
   border-radius: 10px;
   padding: 0.75rem 1rem;
+  color: #4b1d3f;
 }
 
 .role-view-details-toggle {
   background: transparent;
   border: none;
-  color: inherit;
+  color: #4b1d3f;
   font-size: 0.95rem;
   cursor: pointer;
   padding: 0;
+  font-weight: 500;
 }
 
 .role-view-details-content {
   margin-top: 0.75rem;
   font-size: 0.9rem;
-  opacity: 0.85;
+  color: #4b1d3f;
 }
 
-.role-view-details-content p {
-  margin: 0.5rem 0;
-}
+.role-view-details-content p { margin: 0.5rem 0; }
 
 .role-view-toolbar {
   display: flex;
@@ -76,30 +79,31 @@
   flex-wrap: wrap;
 }
 
-.role-view-toolbar .role-view-filters {
-  margin-bottom: 0;
-}
+.role-view-toolbar .role-view-filters { margin-bottom: 0; }
 
 .role-view-add-button {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(244, 114, 182, 0.4);
-  color: #f9a8d4;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(236, 72, 153, 0.5);
+  color: #be185d;
   padding: 0.4rem 0.85rem;
   border-radius: 8px;
   cursor: pointer;
   font-size: 0.9rem;
+  font-weight: 500;
   transition: background 0.2s;
 }
 
 .role-view-add-button:hover {
-  background: rgba(244, 114, 182, 0.15);
+  background: rgba(236, 72, 153, 0.1);
 }
 
 .role-view-add-form {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(236, 72, 153, 0.15);
   border-radius: 10px;
   padding: 1rem;
   margin-bottom: 1.5rem;
+  color: #4b1d3f;
 }
 
 .role-view-filters {
@@ -110,9 +114,9 @@
 }
 
 .role-view-filter {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: inherit;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(236, 72, 153, 0.25);
+  color: #4b1d3f;
   padding: 0.4rem 0.85rem;
   border-radius: 8px;
   cursor: pointer;
@@ -120,9 +124,9 @@
 }
 
 .role-view-filter.active {
-  background: rgba(244, 114, 182, 0.15);
-  border-color: #f472b6;
-  color: #f9a8d4;
+  background: rgba(236, 72, 153, 0.15);
+  border-color: #ec4899;
+  color: #be185d;
 }
 
 .role-view-day-tabs {
@@ -134,9 +138,9 @@
 }
 
 .role-view-day-tab {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: inherit;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(236, 72, 153, 0.25);
+  color: #4b1d3f;
   padding: 0.5rem 1rem;
   border-radius: 8px;
   cursor: pointer;
@@ -148,13 +152,14 @@
 }
 
 .role-view-day-tab.active {
-  background: rgba(244, 114, 182, 0.15);
-  border-color: #f472b6;
-  color: #f9a8d4;
+  background: rgba(236, 72, 153, 0.15);
+  border-color: #ec4899;
+  color: #be185d;
+  font-weight: 600;
 }
 
 .role-view-day-flag {
-  background: #ef4444;
+  background: #dc2626;
   color: #fff;
   font-weight: 700;
   font-size: 0.7rem;
@@ -169,27 +174,28 @@
 }
 
 .role-view-shift-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(236, 72, 153, 0.2);
   border-radius: 10px;
   padding: 1rem 1.25rem;
+  color: #4b1d3f;
 }
 
 .role-view-shift-card.critical {
-  border-left: 4px solid #ef4444;
+  border-left: 4px solid #dc2626;
 }
 
 .role-view-shift-card.partial {
-  border-left: 4px solid #f59e0b;
+  border-left: 4px solid #d97706;
 }
 
 .role-view-shift-card.filled {
-  border-left: 4px solid #22c55e;
+  border-left: 4px solid #16a34a;
 }
 
 .role-view-shift-card.editing {
-  border-color: rgba(244, 114, 182, 0.4);
-  background: rgba(244, 114, 182, 0.04);
+  border-color: rgba(236, 72, 153, 0.5);
+  background: rgba(252, 231, 243, 0.6);
 }
 
 .role-view-shift-header {
@@ -202,17 +208,19 @@
 
 .role-view-shift-time {
   font-weight: 600;
+  color: #4b1d3f;
 }
 
 .role-view-shift-status {
   font-size: 0.9rem;
   padding: 0.2rem 0.6rem;
   border-radius: 6px;
+  font-weight: 500;
 }
 
-.role-view-shift-status.critical { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
-.role-view-shift-status.partial { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
-.role-view-shift-status.filled { background: rgba(34, 197, 94, 0.15); color: #86efac; }
+.role-view-shift-status.critical { background: rgba(239, 68, 68, 0.15); color: #b91c1c; }
+.role-view-shift-status.partial { background: rgba(245, 158, 11, 0.15); color: #b45309; }
+.role-view-shift-status.filled { background: rgba(34, 197, 94, 0.15); color: #15803d; }
 
 .role-view-volunteer-list {
   list-style: none;
@@ -226,33 +234,35 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.35rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(236, 72, 153, 0.12);
+  color: #4b1d3f;
 }
 
 .role-view-volunteer-list li:last-child { border-bottom: none; }
 
 .role-view-volunteer-phone {
-  color: #f9a8d4;
+  color: #be185d;
   text-decoration: none;
+  font-weight: 500;
 }
 
 .role-view-volunteer-phone:hover { text-decoration: underline; }
 
 .role-view-no-phone {
-  opacity: 0.5;
+  color: #8b3a6e;
   font-style: italic;
   font-size: 0.85rem;
 }
 
 .role-view-no-vols {
-  opacity: 0.6;
+  color: #6b2d5c;
   font-style: italic;
   margin: 0.25rem 0;
 }
 
 .role-view-shift-notes {
   font-size: 0.9rem;
-  opacity: 0.8;
+  color: #4b1d3f;
   margin: 0.5rem 0;
 }
 
@@ -263,9 +273,9 @@
 }
 
 .role-view-shift-actions button {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: inherit;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(236, 72, 153, 0.25);
+  color: #4b1d3f;
   padding: 0.35rem 0.85rem;
   border-radius: 6px;
   cursor: pointer;
@@ -273,13 +283,14 @@
 }
 
 .role-view-delete {
-  color: #fca5a5;
-  border-color: rgba(239, 68, 68, 0.35) !important;
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.4) !important;
 }
 
 .role-view-edit-warning {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #92400e;
   border-radius: 8px;
   padding: 0.75rem 1rem;
   margin-bottom: 0.75rem;
@@ -289,14 +300,17 @@
 .role-view-edit-warning.danger {
   background: rgba(239, 68, 68, 0.1);
   border-color: rgba(239, 68, 68, 0.45);
+  color: #991b1b;
 }
 
 .role-view-contact-list {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(236, 72, 153, 0.15);
   border-radius: 8px;
   padding: 0.5rem 1rem;
   margin-bottom: 0.75rem;
   font-size: 0.9rem;
+  color: #4b1d3f;
 }
 
 .role-view-contact-list ul {
@@ -304,7 +318,7 @@
   padding-left: 1.2rem;
 }
 
-.role-view-contact-list a { color: #f9a8d4; }
+.role-view-contact-list a { color: #be185d; }
 
 .role-view-edit-grid {
   display: grid;
@@ -319,15 +333,16 @@
   flex-direction: column;
   font-size: 0.85rem;
   gap: 0.25rem;
+  color: #4b1d3f;
 }
 
 .role-view-edit-grid input,
 .role-view-edit-grid select,
 .role-view-edit-notes-label textarea {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(236, 72, 153, 0.3);
   border-radius: 6px;
-  color: inherit;
+  color: #4b1d3f;
   padding: 0.4rem 0.6rem;
 }
 
@@ -339,7 +354,7 @@
 }
 
 .role-view-empty {
-  opacity: 0.6;
+  color: #6b2d5c;
   font-style: italic;
   text-align: center;
   padding: 2rem;
@@ -347,21 +362,23 @@
 
 .role-view-modal-backdrop {
   position: fixed; inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.5);
   display: flex; align-items: center; justify-content: center;
   z-index: 1000;
   padding: 1rem;
 }
 
 .role-view-modal {
-  background: #1f1230;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #fff;
+  border: 1px solid rgba(236, 72, 153, 0.25);
   border-radius: 12px;
   padding: 1.5rem 2rem;
   max-width: 500px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
+  color: #4b1d3f;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
 }
 
 .role-view-modal label {
@@ -371,10 +388,10 @@
 
 .role-view-modal input[type="text"] {
   width: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(236, 72, 153, 0.3);
   border-radius: 6px;
-  color: inherit;
+  color: #4b1d3f;
   padding: 0.5rem;
   margin-top: 0.25rem;
 }
@@ -410,16 +427,16 @@
   position: absolute;
   left: 0;
   font-size: 0.75rem;
-  opacity: 0.6;
+  color: #6b2d5c;
   transform: translateY(-50%);
 }
 
 .timeline-grid {
   flex: 1;
   position: relative;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.5);
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(236, 72, 153, 0.15);
 }
 
 .timeline-gridline {
@@ -427,23 +444,24 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(236, 72, 153, 0.12);
 }
 
 .timeline-shift {
   position: absolute;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(236, 72, 153, 0.1);
+  border: 1px solid rgba(236, 72, 153, 0.4);
   border-radius: 6px;
   padding: 0.4rem 0.6rem;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.15s;
   font-size: 0.85rem;
+  color: #4b1d3f;
 }
 
 .timeline-shift:hover {
-  border-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(236, 72, 153, 0.6);
 }
 
 .timeline-shift.expanded {
@@ -451,26 +469,31 @@
   min-height: 200px;
   z-index: 4;
   cursor: default;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
 .timeline-shift.critical {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #4b1d3f;
 }
 
 .timeline-shift.partial {
-  background: rgba(245, 158, 11, 0.12);
-  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #4b1d3f;
 }
 
 .timeline-shift.filled {
-  background: rgba(34, 197, 94, 0.12);
-  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #4b1d3f;
 }
 
 .timeline-shift.editing {
-  background: rgba(244, 114, 182, 0.08);
-  border-color: rgba(244, 114, 182, 0.5);
+  background: rgba(252, 231, 243, 0.85);
+  border-color: rgba(236, 72, 153, 0.6);
   overflow-y: auto;
 }
 
@@ -489,9 +512,11 @@
 
 .timeline-shift-count {
   font-size: 0.75rem;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(255, 255, 255, 0.8);
+  color: #4b1d3f;
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
+  font-weight: 600;
 }
 
 .timeline-shift-body {
@@ -511,20 +536,21 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.25rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(236, 72, 153, 0.12);
 }
 
 .timeline-vol-list li:last-child { border-bottom: none; }
 
 .timeline-vol-list a {
-  color: #f9a8d4;
+  color: #be185d;
   text-decoration: none;
+  font-weight: 500;
 }
 
 .timeline-vol-list a:hover { text-decoration: underline; }
 
 .timeline-no-phone {
-  opacity: 0.5;
+  color: #8b3a6e;
   font-style: italic;
   font-size: 0.8rem;
 }
@@ -532,12 +558,12 @@
 .timeline-no-vols {
   margin: 0.25rem 0;
   font-style: italic;
-  opacity: 0.6;
+  color: #6b2d5c;
 }
 
 .timeline-notes {
   font-size: 0.85rem;
-  opacity: 0.85;
+  color: #4b1d3f;
   margin: 0.5rem 0;
 }
 
@@ -548,9 +574,9 @@
 }
 
 .timeline-shift-actions button {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: inherit;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(236, 72, 153, 0.3);
+  color: #4b1d3f;
   padding: 0.3rem 0.7rem;
   border-radius: 6px;
   cursor: pointer;
@@ -564,6 +590,222 @@
 .timeline-empty {
   padding: 2rem;
   text-align: center;
-  opacity: 0.6;
+  color: #6b2d5c;
   font-style: italic;
+}
+
+/* --- Dark mode override --- */
+@media (prefers-color-scheme: dark) {
+  .role-view-back { color: #f9a8d4; }
+
+  .role-view-stat {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+  }
+
+  .role-view-stat.critical { border-color: rgba(239, 68, 68, 0.35); }
+  .role-view-stat-number { color: #f9a8d4; }
+  .role-view-stat.critical .role-view-stat-number { color: #fca5a5; }
+  .role-view-stat-label { color: rgba(241, 225, 236, 0.7); }
+
+  .role-view-details {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.06);
+    color: inherit;
+  }
+
+  .role-view-details-toggle { color: inherit; }
+  .role-view-details-content { color: rgba(241, 225, 236, 0.85); }
+
+  .role-view-add-button {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(244, 114, 182, 0.4);
+    color: #f9a8d4;
+  }
+
+  .role-view-add-button:hover { background: rgba(244, 114, 182, 0.15); }
+
+  .role-view-add-form {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.06);
+    color: inherit;
+  }
+
+  .role-view-filter {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: inherit;
+  }
+
+  .role-view-filter.active {
+    background: rgba(244, 114, 182, 0.15);
+    border-color: #f472b6;
+    color: #f9a8d4;
+  }
+
+  .role-view-day-tab {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: inherit;
+  }
+
+  .role-view-day-tab.active {
+    background: rgba(244, 114, 182, 0.15);
+    border-color: #f472b6;
+    color: #f9a8d4;
+  }
+
+  .role-view-day-flag { background: #ef4444; }
+
+  .role-view-shift-card {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: inherit;
+  }
+
+  .role-view-shift-card.editing {
+    border-color: rgba(244, 114, 182, 0.4);
+    background: rgba(244, 114, 182, 0.04);
+  }
+
+  .role-view-shift-time { color: inherit; }
+
+  .role-view-shift-status.critical { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+  .role-view-shift-status.partial { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
+  .role-view-shift-status.filled { background: rgba(34, 197, 94, 0.15); color: #86efac; }
+
+  .role-view-volunteer-list li {
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+    color: inherit;
+  }
+
+  .role-view-volunteer-phone { color: #f9a8d4; }
+  .role-view-no-phone { color: rgba(241, 225, 236, 0.5); }
+  .role-view-no-vols { color: rgba(241, 225, 236, 0.6); }
+  .role-view-shift-notes { color: rgba(241, 225, 236, 0.8); }
+
+  .role-view-shift-actions button {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: inherit;
+  }
+
+  .role-view-delete {
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.35) !important;
+  }
+
+  .role-view-edit-warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #fcd34d;
+  }
+
+  .role-view-edit-warning.danger {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.45);
+    color: #fca5a5;
+  }
+
+  .role-view-contact-list {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.06);
+    color: inherit;
+  }
+
+  .role-view-contact-list a { color: #f9a8d4; }
+
+  .role-view-edit-grid label,
+  .role-view-edit-notes-label { color: inherit; }
+
+  .role-view-edit-grid input,
+  .role-view-edit-grid select,
+  .role-view-edit-notes-label textarea {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: inherit;
+  }
+
+  .role-view-empty { color: rgba(241, 225, 236, 0.6); }
+
+  .role-view-modal-backdrop { background: rgba(0, 0, 0, 0.65); }
+
+  .role-view-modal {
+    background: #1f1230;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: inherit;
+    box-shadow: none;
+  }
+
+  .role-view-modal input[type="text"] {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: inherit;
+  }
+
+  /* Timeline dark */
+  .timeline-hour-label { color: rgba(241, 225, 236, 0.6); }
+
+  .timeline-grid {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .timeline-gridline { background: rgba(255, 255, 255, 0.06); }
+
+  .timeline-shift {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: inherit;
+  }
+
+  .timeline-shift:hover { border-color: rgba(255, 255, 255, 0.25); }
+
+  .timeline-shift.expanded {
+    background: rgba(31, 18, 48, 0.95);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .timeline-shift.critical {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: inherit;
+  }
+
+  .timeline-shift.partial {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: inherit;
+  }
+
+  .timeline-shift.filled {
+    background: rgba(34, 197, 94, 0.12);
+    border-color: rgba(34, 197, 94, 0.4);
+    color: inherit;
+  }
+
+  .timeline-shift.editing {
+    background: rgba(244, 114, 182, 0.08);
+    border-color: rgba(244, 114, 182, 0.5);
+  }
+
+  .timeline-shift-count {
+    background: rgba(0, 0, 0, 0.25);
+    color: inherit;
+  }
+
+  .timeline-vol-list li { border-bottom-color: rgba(255, 255, 255, 0.05); }
+  .timeline-vol-list a { color: #f9a8d4; }
+  .timeline-no-phone { color: rgba(241, 225, 236, 0.5); }
+  .timeline-no-vols { color: rgba(241, 225, 236, 0.6); }
+  .timeline-notes { color: rgba(241, 225, 236, 0.85); }
+
+  .timeline-shift-actions button {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: inherit;
+  }
+
+  .timeline-empty { color: rgba(241, 225, 236, 0.6); }
 }

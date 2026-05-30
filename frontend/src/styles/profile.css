@@ -375,7 +375,7 @@
   text-decoration: underline;
 }
 
-.modern-cancel-button {
+.modern-day-shift .modern-cancel-button {
   position: absolute;
   top: 0.65rem;
   right: 0.65rem;
@@ -394,7 +394,7 @@
   height: 36px;
 }
 
-.modern-cancel-button:hover {
+.modern-day-shift .modern-cancel-button:hover {
   background: rgba(239, 68, 68, 0.2);
   border-color: rgba(239, 68, 68, 0.5);
   transform: scale(1.05);

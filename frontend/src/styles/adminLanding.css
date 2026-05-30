@@ -1,3 +1,5 @@
+/* Light defaults; dark mode override at the bottom */
+
 .admin-landing-actions {
   display: flex;
   justify-content: flex-end;
@@ -5,22 +7,23 @@
 }
 
 .admin-landing-all-link {
-  color: #f9a8d4;
+  color: #be185d;
   text-decoration: none;
   font-size: 0.95rem;
   padding: 0.5rem 1rem;
-  border: 1px solid rgba(244, 114, 182, 0.4);
+  border: 1px solid rgba(236, 72, 153, 0.4);
   border-radius: 8px;
+  background: rgba(255, 255, 255, 0.6);
   transition: background 0.2s;
 }
 
 .admin-landing-all-link:hover {
-  background: rgba(244, 114, 182, 0.1);
+  background: rgba(236, 72, 153, 0.1);
 }
 
 .admin-landing-section-title {
   font-size: 1.1rem;
-  color: #f9a8d4;
+  color: #be185d;
   margin: 1.5rem 0 0.75rem;
   font-weight: 600;
 }
@@ -38,20 +41,22 @@
 
 .admin-landing-card {
   position: relative;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(236, 72, 153, 0.2);
   border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.08);
   transition: all 0.2s;
 }
 
 .admin-landing-card:hover {
-  border-color: rgba(244, 114, 182, 0.4);
+  border-color: rgba(236, 72, 153, 0.5);
   transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(124, 58, 237, 0.12);
 }
 
 .admin-landing-card.pinned {
-  border-color: rgba(244, 114, 182, 0.5);
-  background: rgba(244, 114, 182, 0.05);
+  border-color: rgba(236, 72, 153, 0.55);
+  background: rgba(252, 231, 243, 0.85);
 }
 
 .admin-landing-pin {
@@ -60,7 +65,7 @@
   right: 0.5rem;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(75, 29, 63, 0.4);
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0.25rem 0.5rem;
@@ -71,12 +76,12 @@
 }
 
 .admin-landing-pin:hover {
-  color: #ffd700;
-  background: rgba(255, 215, 0, 0.1);
+  color: #d97706;
+  background: rgba(251, 191, 36, 0.15);
 }
 
 .admin-landing-card.pinned .admin-landing-pin {
-  color: #ffd700;
+  color: #d97706;
 }
 
 .admin-landing-card-content {
@@ -90,11 +95,13 @@
 .admin-landing-card-title {
   margin: 0 0 0.75rem;
   font-size: 1.1rem;
+  color: #be185d;
+  font-weight: 600;
 }
 
 .admin-landing-empty {
   margin: 0;
-  opacity: 0.5;
+  color: #6b2d5c;
   font-style: italic;
   font-size: 0.9rem;
 }
@@ -105,19 +112,21 @@
   flex-wrap: wrap;
   margin-bottom: 0.75rem;
   font-size: 0.9rem;
+  color: #4b1d3f;
 }
 
 .admin-landing-stat {
-  opacity: 0.85;
+  color: #4b1d3f;
 }
 
 .admin-landing-stat.critical {
-  color: #fca5a5;
+  color: #b91c1c;
+  font-weight: 600;
 }
 
 .admin-landing-progress {
   height: 6px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(236, 72, 153, 0.12);
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 0.5rem;
@@ -125,12 +134,83 @@
 
 .admin-landing-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #f472b6, #c084fc);
+  background: linear-gradient(90deg, #ec4899, #a855f7);
   transition: width 0.3s;
 }
 
 .admin-landing-subtle {
   margin: 0;
   font-size: 0.8rem;
-  opacity: 0.6;
+  color: #6b2d5c;
+}
+
+/* --- Dark mode override --- */
+@media (prefers-color-scheme: dark) {
+  .admin-landing-all-link {
+    color: #f9a8d4;
+    border-color: rgba(244, 114, 182, 0.4);
+    background: transparent;
+  }
+
+  .admin-landing-all-link:hover {
+    background: rgba(244, 114, 182, 0.1);
+  }
+
+  .admin-landing-section-title {
+    color: #f9a8d4;
+  }
+
+  .admin-landing-card {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+  }
+
+  .admin-landing-card:hover {
+    border-color: rgba(244, 114, 182, 0.4);
+    box-shadow: none;
+  }
+
+  .admin-landing-card.pinned {
+    border-color: rgba(244, 114, 182, 0.5);
+    background: rgba(244, 114, 182, 0.05);
+  }
+
+  .admin-landing-pin {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .admin-landing-pin:hover {
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.1);
+  }
+
+  .admin-landing-card.pinned .admin-landing-pin {
+    color: #ffd700;
+  }
+
+  .admin-landing-card-title {
+    color: #f9a8d4;
+  }
+
+  .admin-landing-empty {
+    color: rgba(241, 225, 236, 0.6);
+  }
+
+  .admin-landing-stats-row,
+  .admin-landing-stat {
+    color: rgba(241, 225, 236, 0.85);
+  }
+
+  .admin-landing-stat.critical {
+    color: #fca5a5;
+  }
+
+  .admin-landing-progress {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .admin-landing-subtle {
+    color: rgba(241, 225, 236, 0.6);
+  }
 }
