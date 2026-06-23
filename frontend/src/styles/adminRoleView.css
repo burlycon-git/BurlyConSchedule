@@ -168,120 +168,6 @@
   line-height: 1;
 }
 
-.role-view-shifts {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.role-view-shift-card {
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(236, 72, 153, 0.2);
-  border-radius: 10px;
-  padding: 1rem 1.25rem;
-  color: #4b1d3f;
-}
-
-.role-view-shift-card.critical {
-  border-left: 4px solid #dc2626;
-}
-
-.role-view-shift-card.partial {
-  border-left: 4px solid #d97706;
-}
-
-.role-view-shift-card.filled {
-  border-left: 4px solid #16a34a;
-}
-
-.role-view-shift-card.editing {
-  border-color: rgba(236, 72, 153, 0.5);
-  background: rgba(252, 231, 243, 0.6);
-}
-
-.role-view-shift-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.role-view-shift-time {
-  font-weight: 600;
-  color: #4b1d3f;
-}
-
-.role-view-shift-status {
-  font-size: 0.9rem;
-  padding: 0.2rem 0.6rem;
-  border-radius: 6px;
-  font-weight: 500;
-}
-
-.role-view-shift-status.critical { background: rgba(239, 68, 68, 0.15); color: #b91c1c; }
-.role-view-shift-status.partial { background: rgba(245, 158, 11, 0.15); color: #b45309; }
-.role-view-shift-status.filled { background: rgba(34, 197, 94, 0.15); color: #15803d; }
-
-.role-view-volunteer-list {
-  list-style: none;
-  padding: 0;
-  margin: 0.5rem 0 0.75rem;
-}
-
-.role-view-volunteer-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0;
-  border-bottom: 1px solid rgba(236, 72, 153, 0.12);
-  color: #4b1d3f;
-}
-
-.role-view-volunteer-list li:last-child { border-bottom: none; }
-
-.role-view-volunteer-phone {
-  color: #be185d;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.role-view-volunteer-phone:hover { text-decoration: underline; }
-
-.role-view-no-phone {
-  color: #8b3a6e;
-  font-style: italic;
-  font-size: 0.85rem;
-}
-
-.role-view-no-vols {
-  color: #6b2d5c;
-  font-style: italic;
-  margin: 0.25rem 0;
-}
-
-.role-view-shift-notes {
-  font-size: 0.9rem;
-  color: #4b1d3f;
-  margin: 0.5rem 0;
-}
-
-.role-view-shift-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.role-view-shift-actions button {
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(236, 72, 153, 0.25);
-  color: #4b1d3f;
-  padding: 0.35rem 0.85rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-
 .role-view-delete {
   color: #b91c1c;
   border-color: rgba(239, 68, 68, 0.4) !important;
@@ -449,19 +335,21 @@
 
 .timeline-shift {
   position: absolute;
-  background: rgba(236, 72, 153, 0.1);
-  border: 1px solid rgba(236, 72, 153, 0.4);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(75, 29, 63, 0.15);
+  border-left: 4px solid rgba(75, 29, 63, 0.25);
   border-radius: 6px;
-  padding: 0.4rem 0.6rem;
-  overflow: hidden;
-  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  overflow: visible;
   transition: all 0.15s;
   font-size: 0.85rem;
   color: #4b1d3f;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .timeline-shift:hover {
-  border-color: rgba(236, 72, 153, 0.6);
+  border-color: rgba(75, 29, 63, 0.3);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
 }
 
 .timeline-shift.expanded {
@@ -474,20 +362,23 @@
 }
 
 .timeline-shift.critical {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(75, 29, 63, 0.15);
+  border-left-color: #dc2626;
   color: #4b1d3f;
 }
 
 .timeline-shift.partial {
-  background: rgba(245, 158, 11, 0.18);
-  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(75, 29, 63, 0.15);
+  border-left-color: #f59e0b;
   color: #4b1d3f;
 }
 
 .timeline-shift.filled {
-  background: rgba(34, 197, 94, 0.15);
-  border-color: rgba(34, 197, 94, 0.5);
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(75, 29, 63, 0.15);
+  border-left-color: #16a34a;
   color: #4b1d3f;
 }
 
@@ -569,18 +460,43 @@
 
 .timeline-shift-actions {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.timeline-shift-actions-buttons {
+  display: flex;
+  gap: 0.4rem;
 }
 
 .timeline-shift-actions button {
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(236, 72, 153, 0.3);
+  background: transparent;
+  border: 1px solid rgba(75, 29, 63, 0.25);
   color: #4b1d3f;
-  padding: 0.3rem 0.7rem;
-  border-radius: 6px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.35rem;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.timeline-shift-actions button:hover {
+  background: rgba(236, 72, 153, 0.1);
+  border-color: #ec4899;
+  color: #be185d;
+}
+
+.timeline-shift-actions .role-view-delete {
+  color: #4b1d3f;
+  border-color: rgba(75, 29, 63, 0.25) !important;
+}
+
+.timeline-shift-actions .role-view-delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #dc2626 !important;
+  color: #b91c1c;
 }
 
 .timeline-edit-form {
@@ -592,6 +508,94 @@
   text-align: center;
   color: #6b2d5c;
   font-style: italic;
+}
+
+/* --- Volunteer contact cards inside shifts and dialogs --- */
+
+.timeline-contact-hint,
+.role-view-contact-hint {
+  font-size: 0.8rem;
+  color: #6b2d5c;
+  margin: 0 0 0.6rem 0;
+  font-style: italic;
+}
+
+.volunteer-contact-card {
+  list-style: none;
+  padding: 0.6rem 0.75rem !important;
+  margin-bottom: 0.5rem;
+  background: rgba(236, 72, 153, 0.06);
+  border: 1px solid rgba(236, 72, 153, 0.2);
+  border-radius: 0.5rem;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 0.4rem !important;
+}
+
+.volunteer-contact-card:last-child {
+  margin-bottom: 0;
+}
+
+.volunteer-contact-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #be185d;
+  line-height: 1.2;
+}
+
+.volunteer-contact-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+}
+
+.volunteer-contact-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(236, 72, 153, 0.35);
+  border-radius: 0.4rem;
+  color: #be185d;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.volunteer-contact-link:hover {
+  background: rgba(236, 72, 153, 0.15);
+  border-color: #ec4899;
+  text-decoration: underline;
+  transform: translateY(-1px);
+}
+
+.volunteer-contact-icon {
+  font-size: 0.95rem;
+}
+
+.volunteer-contact-none {
+  font-size: 0.85rem;
+  color: #8b3a6e;
+  font-style: italic;
+}
+
+/* Tighter contact card spacing inside timeline blocks */
+.timeline-shift .volunteer-contact-card {
+  padding: 0.45rem 0.55rem !important;
+  margin-bottom: 0.35rem;
+}
+
+.timeline-shift .volunteer-contact-name {
+  font-size: 0.9rem;
+}
+
+.timeline-shift .volunteer-contact-link {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
 }
 
 /* --- Dark mode override --- */
@@ -658,39 +662,6 @@
 
   .role-view-day-flag { background: #ef4444; }
 
-  .role-view-shift-card {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.08);
-    color: inherit;
-  }
-
-  .role-view-shift-card.editing {
-    border-color: rgba(244, 114, 182, 0.4);
-    background: rgba(244, 114, 182, 0.04);
-  }
-
-  .role-view-shift-time { color: inherit; }
-
-  .role-view-shift-status.critical { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
-  .role-view-shift-status.partial { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
-  .role-view-shift-status.filled { background: rgba(34, 197, 94, 0.15); color: #86efac; }
-
-  .role-view-volunteer-list li {
-    border-bottom-color: rgba(255, 255, 255, 0.05);
-    color: inherit;
-  }
-
-  .role-view-volunteer-phone { color: #f9a8d4; }
-  .role-view-no-phone { color: rgba(241, 225, 236, 0.5); }
-  .role-view-no-vols { color: rgba(241, 225, 236, 0.6); }
-  .role-view-shift-notes { color: rgba(241, 225, 236, 0.8); }
-
-  .role-view-shift-actions button {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: inherit;
-  }
-
   .role-view-delete {
     color: #fca5a5;
     border-color: rgba(239, 68, 68, 0.35) !important;
@@ -755,12 +726,16 @@
   .timeline-gridline { background: rgba(255, 255, 255, 0.06); }
 
   .timeline-shift {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.06);
     border-color: rgba(255, 255, 255, 0.1);
+    border-left-color: rgba(255, 255, 255, 0.25);
     color: inherit;
   }
 
-  .timeline-shift:hover { border-color: rgba(255, 255, 255, 0.25); }
+  .timeline-shift:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+  }
 
   .timeline-shift.expanded {
     background: rgba(31, 18, 48, 0.95);
@@ -768,21 +743,21 @@
   }
 
   .timeline-shift.critical {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.4);
-    color: inherit;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    border-left-color: #ef4444;
   }
 
   .timeline-shift.partial {
-    background: rgba(245, 158, 11, 0.12);
-    border-color: rgba(245, 158, 11, 0.4);
-    color: inherit;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    border-left-color: #facc15;
   }
 
   .timeline-shift.filled {
-    background: rgba(34, 197, 94, 0.12);
-    border-color: rgba(34, 197, 94, 0.4);
-    color: inherit;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    border-left-color: #22c55e;
   }
 
   .timeline-shift.editing {
@@ -802,10 +777,57 @@
   .timeline-notes { color: rgba(241, 225, 236, 0.85); }
 
   .timeline-shift-actions button {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.15);
-    color: inherit;
+    background: transparent;
+    border-color: rgba(241, 225, 236, 0.25);
+    color: rgba(241, 225, 236, 0.85);
+  }
+
+  .timeline-shift-actions button:hover {
+    background: rgba(244, 114, 182, 0.15);
+    border-color: #f472b6;
+    color: #f9a8d4;
+  }
+
+  .timeline-shift-actions .role-view-delete {
+    color: rgba(241, 225, 236, 0.85);
+    border-color: rgba(241, 225, 236, 0.25) !important;
+  }
+
+  .timeline-shift-actions .role-view-delete:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444 !important;
+    color: #fca5a5;
   }
 
   .timeline-empty { color: rgba(241, 225, 236, 0.6); }
+
+  .timeline-contact-hint,
+  .role-view-contact-hint {
+    color: rgba(241, 225, 236, 0.7);
+  }
+
+  .volunteer-contact-card {
+    background: rgba(236, 72, 153, 0.1);
+    border-color: rgba(236, 72, 153, 0.3);
+  }
+
+  .volunteer-contact-name {
+    color: #f9a8d4;
+  }
+
+  .volunteer-contact-link {
+    background: rgba(0, 0, 0, 0.25);
+    border-color: rgba(244, 114, 182, 0.4);
+    color: #f9a8d4;
+  }
+
+  .volunteer-contact-link:hover {
+    background: rgba(244, 114, 182, 0.2);
+    border-color: #f472b6;
+    color: #fbcfe8;
+  }
+
+  .volunteer-contact-none {
+    color: rgba(241, 225, 236, 0.55);
+  }
 }

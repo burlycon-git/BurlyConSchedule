@@ -370,21 +370,15 @@ export default function AdminRoleView() {
 
                   <div className="role-view-contact-list">
                     <strong>Affected volunteers:</strong>
+                    <p className="role-view-contact-hint">👇 Tap a phone or email to reach out</p>
                     <ul>
-                      {deletingShift.volunteersRegistered.map((v) => {
-                        const name = v?.preferredName || v?.email || "Volunteer";
-                        const phone = v?.phone;
-                        return (
-                          <li key={v?._id || v?.id || name}>
-                            {name}
-                            {phone ? (
-                              <> — <a href={`tel:${phone.replace(/\D/g, "")}`}>📞 {formatPhone(phone)}</a></>
-                            ) : (
-                              <span className="role-view-no-phone"> — no phone on file</span>
-                            )}
-                          </li>
-                        );
-                      })}
+                      {deletingShift.volunteersRegistered.map((v) => (
+                        <VolunteerContactCard
+                          key={v?._id || v?.id || v?.email}
+                          volunteer={v}
+                          formatPhone={formatPhone}
+                        />
+                      ))}
                     </ul>
                   </div>
 
@@ -577,55 +571,46 @@ function TimelineView({
                 width: `calc(${widthPct}% - 8px)`,
                 zIndex: isExpanded ? 4 : 1,
               }}
-              onClick={() => setExpandedShift(isExpanded ? null : shift._id)}
             >
               <div className="timeline-shift-header">
                 <span className="timeline-shift-time">
                   {formatTime(shift.startTime)}–{formatTime(shift.endTime)}
                 </span>
-                <span className="timeline-shift-count">
-                  {filled}/{totalSlots}
-                </span>
-              </div>
-
-              {isExpanded && (
-                <div className="timeline-shift-body" onClick={(e) => e.stopPropagation()}>
-                  {shift.volunteersRegistered?.length > 0 ? (
-                    <ul className="timeline-vol-list">
-                      {shift.volunteersRegistered.map((v) => {
-                        const name = v?.preferredName || v?.email || "Volunteer";
-                        const phone = v?.phone;
-                        return (
-                          <li key={v?._id || v?.id || name}>
-                            <span>{name}</span>
-                            {phone ? (
-                              <a href={`tel:${phone.replace(/\D/g, "")}`}>📞 {formatPhone(phone)}</a>
-                            ) : (
-                              <span className="timeline-no-phone">no phone</span>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : (
-                    <p className="timeline-no-vols">No volunteers signed up</p>
-                  )}
-
-                  {shift.notes && <p className="timeline-notes">📌 {shift.notes}</p>}
-
-                  <div className="timeline-shift-actions">
+                <div className="timeline-shift-actions" onClick={(e) => e.stopPropagation()}>
+                  <div className="timeline-shift-actions-buttons">
                     <button onClick={(e) => { e.stopPropagation(); onEdit(shift); }}>
-                      ✏️ Edit
+                      Edit
                     </button>
                     <button
                       className="role-view-delete"
                       onClick={(e) => { e.stopPropagation(); onDelete(shift); }}
                     >
-                      🗑️ Delete
+                      Delete
                     </button>
                   </div>
                 </div>
-              )}
+                <span className="timeline-shift-count">
+                  {filled}/{totalSlots}
+                </span>
+              </div>
+
+              <div className="timeline-shift-body" onClick={(e) => e.stopPropagation()}>
+                {shift.volunteersRegistered?.length > 0 ? (
+                  <ul className="timeline-vol-list">
+                    {shift.volunteersRegistered.map((v) => (
+                      <VolunteerContactCard
+                        key={v?._id || v?.id || v?.email}
+                        volunteer={v}
+                        formatPhone={formatPhone}
+                      />
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="timeline-no-vols">No volunteers signed up</p>
+                )}
+
+                {shift.notes && <p className="timeline-notes">📌 {shift.notes}</p>}
+              </div>
             </div>
           );
         })}
@@ -645,21 +630,15 @@ function ShiftEditForm({ shift, formData, setFormData, eventDates, onCancel, onS
           </div>
           <div className="role-view-contact-list">
             <strong>Reach out to:</strong>
+            <p className="role-view-contact-hint">👇 Tap a phone or email to reach out</p>
             <ul>
-              {shift.volunteersRegistered.map((v) => {
-                const name = v?.preferredName || v?.email || "Volunteer";
-                const phone = v?.phone;
-                return (
-                  <li key={v?._id || v?.id || name}>
-                    {name}
-                    {phone ? (
-                      <> — <a href={`tel:${phone.replace(/\D/g, "")}`}>📞 {formatPhone(phone)}</a></>
-                    ) : (
-                      <span className="role-view-no-phone"> — no phone on file</span>
-                    )}
-                  </li>
-                );
-              })}
+              {shift.volunteersRegistered.map((v) => (
+                <VolunteerContactCard
+                  key={v?._id || v?.id || v?.email}
+                  volunteer={v}
+                  formatPhone={formatPhone}
+                />
+              ))}
             </ul>
           </div>
         </>
@@ -706,5 +685,31 @@ function ShiftEditForm({ shift, formData, setFormData, eventDates, onCancel, onS
         <button className="modern-primary-button" onClick={onSave}>Save</button>
       </div>
     </div>
+  );
+}
+
+function VolunteerContactCard({ volunteer, formatPhone }) {
+  const v = volunteer || {};
+  const name = v.preferredName || v.name || v.email || "Volunteer";
+  const phone = v.phone;
+  const email = v.email;
+  const phoneHref = phone ? `tel:${phone.replace(/\D/g, "")}` : null;
+  const emailHref = email ? `mailto:${email}` : null;
+
+  return (
+    <li className="volunteer-contact-card">
+      <div className="volunteer-contact-name">👤 {name}</div>
+      <div className="volunteer-contact-methods">
+        {phone && (
+          <a href={phoneHref} className="volunteer-contact-link phone"><span className="volunteer-contact-icon">📞</span><span>{formatPhone(phone)}</span></a>
+        )}
+        {email && (
+          <a href={emailHref} className="volunteer-contact-link email"><span className="volunteer-contact-icon">✉️</span><span>{email}</span></a>
+        )}
+        {!phone && !email && (
+          <span className="volunteer-contact-none">No contact info on file</span>
+        )}
+      </div>
+    </li>
   );
 }
