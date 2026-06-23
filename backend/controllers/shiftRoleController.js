@@ -18,7 +18,8 @@ exports.createRole = async (req, res) => {
     responsibilities,
     physicalRequirements,
     pointOfContact,
-    contactPhone
+    contactPhone,
+    acknowledgmentText
   } = req.body;
 
   try {
@@ -28,7 +29,8 @@ exports.createRole = async (req, res) => {
       responsibilities,
       physicalRequirements,
       pointOfContact,
-      contactPhone
+      contactPhone,
+      acknowledgmentText
     });
 
     await newRole.save();
@@ -65,4 +67,3 @@ exports.deleteRole = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-

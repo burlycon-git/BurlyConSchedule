@@ -26,7 +26,14 @@ const shiftRoleSchema = new mongoose.Schema(
     },
     contactPhone: {
       type: String,
-      default: "", 
+      default: "",
+    },
+    // If non-empty, volunteers must confirm this sentence before signing up.
+    // Empty = normal signup, no confirmation step. The text being present IS the toggle.
+    acknowledgmentText: {
+      type: String,
+      default: "",
+      trim: true,
     },
     isActive: {
       type: Boolean,

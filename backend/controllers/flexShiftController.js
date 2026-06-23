@@ -1,5 +1,6 @@
 const FlexibleShift = require("../models/FlexibleShift");
 const User = require("../models/User");
+const ShiftRole = require("../models/ShiftRole");
 const { getActiveEvent } = require("../utils/getActiveEvent");
 
 // GET users shifts
@@ -103,7 +104,7 @@ const updateFlexShift = async (req, res) => {
 
 // POST signup
 const signUpForFlexShift = async (req, res) => {
-  const { userId } = req.body;
+  const { userId, acknowledged } = req.body;
   const { id: shiftId } = req.params;
 
   try {
@@ -121,7 +122,30 @@ const signUpForFlexShift = async (req, res) => {
       return res.status(400).json({ message: "Shift full" });
     }
 
+    // If this role requires acknowledgment, enforce it server-side.
+    const roleDoc = await ShiftRole.findOne({ name: shift.role });
+    const requiredText = roleDoc && roleDoc.acknowledgmentText
+      ? roleDoc.acknowledgmentText.trim()
+      : "";
+
+    if (requiredText && acknowledged !== true) {
+      return res.status(400).json({
+        message: "This role requires acknowledgment before signup",
+        acknowledgmentRequired: true,
+        acknowledgmentText: requiredText
+      });
+    }
+
     shift.volunteersRegistered.push(user._id);
+
+    if (requiredText) {
+      shift.acknowledgments.push({
+        user: user._id,
+        text: requiredText,
+        acknowledgedAt: new Date()
+      });
+    }
+
     await shift.save();
 
     await User.findByIdAndUpdate(user._id, {
@@ -155,6 +179,14 @@ const cancelFlexShift = async (req, res) => {
     shift.volunteersRegistered = shift.volunteersRegistered.filter(
       (id) => !id.equals(user._id)
     );
+
+    // Clear any acknowledgment snapshot for this user too.
+    if (Array.isArray(shift.acknowledgments)) {
+      shift.acknowledgments = shift.acknowledgments.filter(
+        (a) => !a.user.equals(user._id)
+      );
+    }
+
     await shift.save();
 
     await User.findByIdAndUpdate(user._id, {

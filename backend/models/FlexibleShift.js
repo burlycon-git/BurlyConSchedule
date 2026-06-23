@@ -28,8 +28,25 @@ const flexibleShiftSchema = new mongoose.Schema({
     required: true
   },
   volunteersRegistered: [{
-    type: mongoose.Schema.Types.ObjectId,  
+    type: mongoose.Schema.Types.ObjectId,
     ref: "User"
+  }],
+  // Snapshot of who confirmed a role requirement, what they agreed to, and when.
+  // Parallel to volunteersRegistered so existing .includes()/.filter() logic is untouched.
+  acknowledgments: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
+    text: {
+      type: String,
+      default: ""
+    },
+    acknowledgedAt: {
+      type: Date,
+      default: Date.now
+    }
   }],
   notes: {
     type: String
