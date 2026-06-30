@@ -159,7 +159,13 @@ export default function AdminRoleView() {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const updated = await res.json();
-      setShifts((prev) => prev.map((s) => (s._id === editingShift ? { ...s, ...updated } : s)));
+      setShifts((prev) =>
+        prev.map((s) =>
+          s._id === editingShift
+            ? { ...s, ...updated, volunteersRegistered: s.volunteersRegistered }
+            : s
+        )
+      );
       handleCancelEdit();
     } catch (e) {
       alert(`Failed to save: ${e.message}`);
@@ -192,6 +198,8 @@ export default function AdminRoleView() {
       alert(`Failed to delete: ${e.message}`);
     }
   };
+
+  const editingShiftObj = editingShift ? shifts.find((s) => s._id === editingShift) : null;
 
   if (!isAdminOrLead) {
     return (
@@ -334,22 +342,39 @@ export default function AdminRoleView() {
 
             <TimelineView
               shifts={dayShifts}
-              selectedDate={selectedDate}
-              editingShift={editingShift}
-              editFormData={editFormData}
-              setEditFormData={setEditFormData}
-              eventDates={eventDates}
               onEdit={handleEdit}
-              onCancelEdit={handleCancelEdit}
-              onSaveEdit={handleSaveEdit}
               onDelete={openDeleteDialog}
               formatTime={formatTime}
-              formatDateLabel={formatDateLabel}
               formatPhone={formatPhone}
             />
           </>
         )}
       </div>
+
+      {editingShiftObj && (
+        <div className="role-view-modal-backdrop" onClick={handleCancelEdit}>
+          <div
+            className="role-view-modal role-view-modal-edit"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>Edit shift</h3>
+            <p>
+              <strong>{formatDateLabel(editingShiftObj.date)}</strong> at{" "}
+              {formatTime(editingShiftObj.startTime)}–{formatTime(editingShiftObj.endTime)}
+            </p>
+            <ShiftEditForm
+              shift={editingShiftObj}
+              formData={editFormData}
+              setFormData={setEditFormData}
+              eventDates={eventDates}
+              onCancel={handleCancelEdit}
+              onSave={handleSaveEdit}
+              formatDateLabel={formatDateLabel}
+              formatPhone={formatPhone}
+            />
+          </div>
+        </div>
+      )}
 
       {deletingShift && (() => {
         const filled = deletingShift.volunteersRegistered?.length || 0;
@@ -427,6 +452,7 @@ export default function AdminRoleView() {
 const HOUR_START = 7;
 const HOUR_END = 26;
 const HOUR_HEIGHT = 60;
+const COLLAPSED_VOLUNTEER_LIMIT = 4;
 
 function timeToHours(timeStr, isEndTime = false, startHours = null) {
   if (!timeStr) return 0;
@@ -438,20 +464,7 @@ function timeToHours(timeStr, isEndTime = false, startHours = null) {
   return hours;
 }
 
-function TimelineView({
-  shifts,
-  editingShift,
-  editFormData,
-  setEditFormData,
-  eventDates,
-  onEdit,
-  onCancelEdit,
-  onSaveEdit,
-  onDelete,
-  formatTime,
-  formatDateLabel,
-  formatPhone,
-}) {
+function TimelineView({ shifts, onEdit, onDelete, formatTime, formatPhone }) {
   const [expandedShift, setExpandedShift] = useState(null);
 
   if (shifts.length === 0) {
@@ -531,34 +544,10 @@ function TimelineView({
           const leftPct = column * widthPct;
 
           const isExpanded = expandedShift === shift._id;
-          const isEditing = editingShift === shift._id;
 
-          if (isEditing) {
-            return (
-              <div
-                key={shift._id}
-                className={`timeline-shift editing ${statusClass}`}
-                style={{
-                  top: `${top}px`,
-                  height: `${Math.max(height, 200)}px`,
-                  left: `${leftPct}%`,
-                  width: `calc(${widthPct}% - 8px)`,
-                  zIndex: 5,
-                }}
-              >
-                <ShiftEditForm
-                  shift={shift}
-                  formData={editFormData}
-                  setFormData={setEditFormData}
-                  eventDates={eventDates}
-                  onCancel={onCancelEdit}
-                  onSave={onSaveEdit}
-                  formatDateLabel={formatDateLabel}
-                  formatPhone={formatPhone}
-                />
-              </div>
-            );
-          }
+          const regs = shift.volunteersRegistered || [];
+          const hasMoreVolunteers = regs.length > COLLAPSED_VOLUNTEER_LIMIT;
+          const visibleRegs = isExpanded ? regs : regs.slice(0, COLLAPSED_VOLUNTEER_LIMIT);
 
           return (
             <div
@@ -576,6 +565,21 @@ function TimelineView({
                 <span className="timeline-shift-time">
                   {formatTime(shift.startTime)}–{formatTime(shift.endTime)}
                 </span>
+                {shift.notes && (
+                  <button
+                    type="button"
+                    className={`timeline-note-toggle ${isExpanded ? "active" : ""}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedShift(isExpanded ? null : shift._id);
+                    }}
+                    aria-expanded={isExpanded}
+                    aria-label={isExpanded ? "Hide shift note" : "Show shift note"}
+                    title={isExpanded ? "Hide note" : "Show note"}
+                  >
+                    <span className="timeline-note-toggle-caret" aria-hidden="true">{isExpanded ? "▾" : "▸"}</span> note
+                  </button>
+                )}
                 <div className="timeline-shift-actions" onClick={(e) => e.stopPropagation()}>
                   <div className="timeline-shift-actions-buttons">
                     <button onClick={(e) => { e.stopPropagation(); onEdit(shift); }}>
@@ -595,21 +599,40 @@ function TimelineView({
               </div>
 
               <div className="timeline-shift-body" onClick={(e) => e.stopPropagation()}>
-                {shift.volunteersRegistered?.length > 0 ? (
-                  <ul className="timeline-vol-list">
-                    {shift.volunteersRegistered.map((v) => (
-                      <VolunteerContactCard
-                        key={v?._id || v?.id || v?.email}
-                        volunteer={v}
-                        formatPhone={formatPhone}
-                      />
-                    ))}
-                  </ul>
+                {regs.length > 0 ? (
+                  <>
+                    <ul className="timeline-vol-list">
+                      {visibleRegs.map((v) => (
+                        <VolunteerContactCard
+                          key={v?._id || v?.id || v?.email}
+                          volunteer={v}
+                          formatPhone={formatPhone}
+                        />
+                      ))}
+                    </ul>
+                    {hasMoreVolunteers && (
+                      <button
+                        type="button"
+                        className="timeline-vol-more"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedShift(isExpanded ? null : shift._id);
+                        }}
+                        aria-expanded={isExpanded}
+                      >
+                        {isExpanded
+                          ? "Show fewer"
+                          : `+${regs.length - COLLAPSED_VOLUNTEER_LIMIT} more`}
+                      </button>
+                    )}
+                  </>
                 ) : (
                   <p className="timeline-no-vols">No volunteers signed up</p>
                 )}
 
-                {shift.notes && <p className="timeline-notes">📌 {shift.notes}</p>}
+                {shift.notes && isExpanded && (
+                  <p className="timeline-notes">📌 {shift.notes}</p>
+                )}
               </div>
             </div>
           );
@@ -677,7 +700,7 @@ function ShiftEditForm({ shift, formData, setFormData, eventDates, onCancel, onS
         <textarea
           value={formData.notes}
           onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))}
-          rows={2}
+          rows={4}
         />
       </label>
       <div className="role-view-edit-actions">
