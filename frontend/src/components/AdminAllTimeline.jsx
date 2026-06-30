@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Header from "./Header";
 import { hasRole } from "../utils/authUtils";
@@ -8,6 +8,7 @@ const API_BASE = process.env.REACT_APP_API_BASE;
 const HOUR_START = 7;
 const HOUR_END = 26;
 const HOUR_HEIGHT = 60;
+const OPS_CHIP_LIMIT = 2;
 
 function timeToHours(timeStr, isEndTime = false, startHours = null) {
   if (!timeStr) return 0;
@@ -26,6 +27,9 @@ export default function AdminAllTimeline() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedShift, setExpandedShift] = useState(null);
+  const [scrollEdges, setScrollEdges] = useState({ left: false, right: false });
+
+  const scrollRef = useRef(null);
 
   const isAdminOrLead = hasRole("Admin") || hasRole("Lead");
 
@@ -88,14 +92,15 @@ export default function AdminAllTimeline() {
     });
   };
 
-  const formatPhone = (phone) => {
-    if (!phone) return null;
-    const cleaned = phone.replace(/\D/g, "");
-    if (cleaned.length === 10) {
-      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-    }
-    return phone;
-  };
+  const updateScrollEdges = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setScrollEdges({
+      left: scrollLeft > 4,
+      right: scrollLeft + clientWidth < scrollWidth - 4,
+    });
+  }, []);
 
   // Filter to selected day
   const dayShifts = allShifts.filter((s) => s.date === selectedDate);
@@ -108,6 +113,12 @@ export default function AdminAllTimeline() {
   }, {});
 
   const sortedRoles = Object.keys(byRole).sort();
+
+  useEffect(() => {
+    updateScrollEdges();
+    window.addEventListener("resize", updateScrollEdges);
+    return () => window.removeEventListener("resize", updateScrollEdges);
+  }, [updateScrollEdges, loading, selectedDate, sortedRoles.length]);
 
   const hourLabels = [];
   for (let h = HOUR_START; h <= HOUR_END; h++) {
@@ -181,153 +192,163 @@ export default function AdminAllTimeline() {
             {sortedRoles.length === 0 ? (
               <p className="role-view-empty">No shifts scheduled for this day.</p>
             ) : (
-              <div className="all-timeline-scroll">
+              <div className="all-timeline-scroll-wrap">
+                {scrollEdges.left && (
+                  <div className="all-timeline-fade left all-timeline-no-print" aria-hidden="true" />
+                )}
+                {scrollEdges.right && (
+                  <div className="all-timeline-fade right all-timeline-no-print" aria-hidden="true" />
+                )}
+
                 <div
-                  className="all-timeline"
-                  style={{
-                    gridTemplateColumns: `60px repeat(${sortedRoles.length}, minmax(180px, 1fr))`,
-                  }}
+                  className="all-timeline-scroll"
+                  ref={scrollRef}
+                  onScroll={updateScrollEdges}
                 >
-                  {/* Top-left empty cell */}
-                  <div className="all-timeline-corner" />
+                  <div
+                    className="all-timeline"
+                    style={{
+                      gridTemplateColumns: `60px repeat(${sortedRoles.length}, minmax(180px, 1fr))`,
+                    }}
+                  >
+                    {/* Top-left empty cell */}
+                    <div className="all-timeline-corner" />
 
-                  {/* Role headers */}
-                  {sortedRoles.map((role) => (
-                    <div key={role} className="all-timeline-role-header">
-                      {role}
-                    </div>
-                  ))}
-
-                  {/* Hour labels column */}
-                  <div className="all-timeline-hours" style={{ height: `${totalHeight}px` }}>
-                    {hourLabels.map((hl) => (
-                      <div
-                        key={hl.hour}
-                        className="timeline-hour-label"
-                        style={{ top: `${(hl.hour - HOUR_START) * HOUR_HEIGHT}px` }}
-                      >
-                        {hl.label}
+                    {/* Role headers */}
+                    {sortedRoles.map((role) => (
+                      <div key={role} className="all-timeline-role-header">
+                        {role}
                       </div>
                     ))}
-                  </div>
 
-                  {/* Per-role columns */}
-                  {sortedRoles.map((role) => {
-                    const roleShifts = byRole[role];
-                    const positioned = roleShifts
-                      .map((s) => {
-                        const start = timeToHours(s.startTime);
-                        const end = timeToHours(s.endTime, true, start);
-                        return { shift: s, start, end };
-                      })
-                      .sort((a, b) => a.start - b.start);
+                    {/* Hour labels column */}
+                    <div className="all-timeline-hours" style={{ height: `${totalHeight}px` }}>
+                      {hourLabels.map((hl) => (
+                        <div
+                          key={hl.hour}
+                          className="timeline-hour-label"
+                          style={{ top: `${(hl.hour - HOUR_START) * HOUR_HEIGHT}px` }}
+                        >
+                          {hl.label}
+                        </div>
+                      ))}
+                    </div>
 
-                    // Sub-column placement for overlaps within this role
-                    const subColumns = [];
-                    positioned.forEach((p) => {
-                      let placed = false;
-                      for (let i = 0; i < subColumns.length; i++) {
-                        const last = subColumns[i][subColumns[i].length - 1];
-                        if (last.end <= p.start) {
-                          subColumns[i].push(p);
-                          p.subCol = i;
-                          placed = true;
-                          break;
+                    {/* Per-role columns */}
+                    {sortedRoles.map((role) => {
+                      const roleShifts = byRole[role];
+                      const positioned = roleShifts
+                        .map((s) => {
+                          const start = timeToHours(s.startTime);
+                          const end = timeToHours(s.endTime, true, start);
+                          return { shift: s, start, end };
+                        })
+                        .sort((a, b) => a.start - b.start);
+
+                      // Sub-column placement for overlaps within this role
+                      const subColumns = [];
+                      positioned.forEach((p) => {
+                        let placed = false;
+                        for (let i = 0; i < subColumns.length; i++) {
+                          const last = subColumns[i][subColumns[i].length - 1];
+                          if (last.end <= p.start) {
+                            subColumns[i].push(p);
+                            p.subCol = i;
+                            placed = true;
+                            break;
+                          }
                         }
-                      }
-                      if (!placed) {
-                        p.subCol = subColumns.length;
-                        subColumns.push([p]);
-                      }
-                    });
+                        if (!placed) {
+                          p.subCol = subColumns.length;
+                          subColumns.push([p]);
+                        }
+                      });
 
-                    const totalSubs = Math.max(1, subColumns.length);
+                      const totalSubs = Math.max(1, subColumns.length);
 
-                    return (
-                      <div
-                        key={role}
-                        className="all-timeline-col"
-                        style={{ height: `${totalHeight}px` }}
-                      >
-                        {hourLabels.map((hl) => (
-                          <div
-                            key={hl.hour}
-                            className="timeline-gridline"
-                            style={{ top: `${(hl.hour - HOUR_START) * HOUR_HEIGHT}px` }}
-                          />
-                        ))}
-
-                        {positioned.map(({ shift, start, end, subCol }) => {
-                          const filled = shift.volunteersRegistered?.length || 0;
-                          const needed = shift.volunteersNeeded || 0;
-                          const totalSlots = filled + needed;
-                          const statusClass = needed === 0
-                            ? "filled"
-                            : filled === 0
-                              ? "critical"
-                              : "partial";
-
-                          const top = (start - HOUR_START) * HOUR_HEIGHT;
-                          const height = (end - start) * HOUR_HEIGHT;
-                          const widthPct = 100 / totalSubs;
-                          const leftPct = subCol * widthPct;
-
-                          const isExpanded = expandedShift === shift._id;
-
-                          return (
+                      return (
+                        <div
+                          key={role}
+                          className="all-timeline-col"
+                          style={{ height: `${totalHeight}px` }}
+                        >
+                          {hourLabels.map((hl) => (
                             <div
-                              key={shift._id}
-                              className={`all-timeline-shift ${statusClass} ${isExpanded ? "expanded" : ""}`}
-                              style={{
-                                top: `${top}px`,
-                                height: `${height}px`,
-                                left: `${leftPct}%`,
-                                width: `calc(${widthPct}% - 4px)`,
-                                zIndex: isExpanded ? 5 : 1,
-                              }}
-                              onClick={() => setExpandedShift(isExpanded ? null : shift._id)}
-                            >
-                              <div className="all-timeline-shift-header">
-                                <span className="all-timeline-shift-time">
-                                  {formatTime(shift.startTime)}–{formatTime(shift.endTime)}
-                                </span>
-                                <span className="all-timeline-shift-count">{filled}/{totalSlots}</span>
+                              key={hl.hour}
+                              className="timeline-gridline"
+                              style={{ top: `${(hl.hour - HOUR_START) * HOUR_HEIGHT}px` }}
+                            />
+                          ))}
+
+                          {positioned.map(({ shift, start, end, subCol }) => {
+                            const filled = shift.volunteersRegistered?.length || 0;
+                            const needed = shift.volunteersNeeded || 0;
+                            const totalSlots = filled + needed;
+                            const statusClass = needed === 0
+                              ? "filled"
+                              : filled === 0
+                                ? "critical"
+                                : "partial";
+
+                            const top = (start - HOUR_START) * HOUR_HEIGHT;
+                            const height = (end - start) * HOUR_HEIGHT;
+                            const widthPct = 100 / totalSubs;
+                            const leftPct = subCol * widthPct;
+
+                            const isExpanded = expandedShift === shift._id;
+
+                            const regs = shift.volunteersRegistered || [];
+                            const visibleRegs = isExpanded ? regs : regs.slice(0, OPS_CHIP_LIMIT);
+                            const hiddenCount = regs.length - visibleRegs.length;
+
+                            return (
+                              <div
+                                key={shift._id}
+                                className={`all-timeline-shift ${statusClass} ${isExpanded ? "expanded" : ""}`}
+                                style={{
+                                  top: `${top}px`,
+                                  height: `${height}px`,
+                                  left: `${leftPct}%`,
+                                  width: `calc(${widthPct}% - 4px)`,
+                                  zIndex: isExpanded ? 5 : 1,
+                                }}
+                                onClick={() => setExpandedShift(isExpanded ? null : shift._id)}
+                              >
+                                <div className="all-timeline-shift-header">
+                                  <span className="all-timeline-shift-time">
+                                    {formatTime(shift.startTime)}–{formatTime(shift.endTime)}
+                                  </span>
+                                  <span className="all-timeline-shift-count">{filled}/{totalSlots}</span>
+                                </div>
+
+                                {regs.length > 0 ? (
+                                  <ul className="all-timeline-vol-list">
+                                    {visibleRegs.map((v) => {
+                                      const name = v?.preferredName || v?.email || "Volunteer";
+                                      return (
+                                        <li key={v?._id || v?.id || name} className="all-timeline-vol-chip">
+                                          {name}
+                                        </li>
+                                      );
+                                    })}
+                                    {hiddenCount > 0 && (
+                                      <li className="all-timeline-vol-chip more">+{hiddenCount}</li>
+                                    )}
+                                  </ul>
+                                ) : (
+                                  <p className="all-timeline-no-vols">No volunteers</p>
+                                )}
+
+                                {isExpanded && shift.notes && (
+                                  <p className="all-timeline-notes">📌 {shift.notes}</p>
+                                )}
                               </div>
-
-                              {shift.volunteersRegistered?.length > 0 ? (
-                                <ul className="all-timeline-vol-list">
-                                  {shift.volunteersRegistered.map((v) => {
-                                    const name = v?.preferredName || v?.email || "Volunteer";
-                                    const phone = v?.phone;
-                                    return (
-                                      <li key={v?._id || v?.id || name}>
-                                        <span className="all-timeline-vol-name">{name}</span>
-                                        {phone && (
-                                          <a
-                                            href={`tel:${phone.replace(/\D/g, "")}`}
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="all-timeline-vol-phone"
-                                          >
-                                            📞 {formatPhone(phone)}
-                                          </a>
-                                        )}
-                                      </li>
-                                    );
-                                  })}
-                                </ul>
-                              ) : (
-                                <p className="all-timeline-no-vols">No volunteers</p>
-                              )}
-
-                              {isExpanded && shift.notes && (
-                                <p className="all-timeline-notes">📌 {shift.notes}</p>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}

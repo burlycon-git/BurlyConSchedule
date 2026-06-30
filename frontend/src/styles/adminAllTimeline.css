@@ -26,12 +26,61 @@
   display: none;
 }
 
+/* Wrapper holds the scroll-edge fade cues */
+.all-timeline-scroll-wrap {
+  position: relative;
+}
+
+.all-timeline-fade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+  pointer-events: none;
+  z-index: 12;
+}
+
+.all-timeline-fade.right {
+  right: 0;
+  background: linear-gradient(to right, rgba(26, 16, 32, 0), rgba(26, 16, 32, 0.9));
+}
+
+/* Start the left fade just past the sticky 60px time gutter */
+.all-timeline-fade.left {
+  left: 60px;
+  background: linear-gradient(to left, rgba(26, 16, 32, 0), rgba(26, 16, 32, 0.9));
+}
+
 .all-timeline-scroll {
   overflow: auto;
   max-height: calc(100vh - 220px);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.02);
   position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(244, 114, 182, 0.45) transparent;
+}
+
+.all-timeline-scroll::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+
+.all-timeline-scroll::-webkit-scrollbar-thumb {
+  background: rgba(244, 114, 182, 0.4);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+.all-timeline-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(244, 114, 182, 0.65);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+}
+
+.all-timeline-scroll::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .all-timeline {
@@ -52,7 +101,7 @@
 
 .all-timeline-role-header {
   padding: 0.6rem 0.75rem;
-  background: rgba(244, 114, 182, 0.08);
+  background: #34203f;
   border-bottom: 1px solid rgba(244, 114, 182, 0.3);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   font-size: 0.85rem;
@@ -134,28 +183,33 @@
   border-radius: 999px;
 }
 
+/* Volunteer names as compact wrapping chips */
 .all-timeline-vol-list {
   list-style: none;
   padding: 0;
-  margin: 0.25rem 0 0;
-  font-size: 0.75rem;
-}
-
-.all-timeline-vol-list li {
-  padding: 0.15rem 0;
+  margin: 0.3rem 0 0;
   display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
+  flex-wrap: wrap;
+  gap: 0.25rem;
 }
 
-.all-timeline-vol-name {
-  font-weight: 500;
-}
-
-.all-timeline-vol-phone {
-  color: #f9a8d4;
-  text-decoration: none;
+.all-timeline-vol-chip {
+  max-width: 100%;
   font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.3;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.all-timeline-vol-chip.more {
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 600;
+  opacity: 0.85;
 }
 
 .all-timeline-no-vols {
@@ -263,8 +317,8 @@
     border-color: #2a2 !important;
   }
 
-  .all-timeline-vol-phone,
-  .all-timeline-vol-name {
+  .all-timeline-vol-chip {
+    background: #eee !important;
     color: black !important;
   }
 
