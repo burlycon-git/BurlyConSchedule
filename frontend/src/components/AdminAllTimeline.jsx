@@ -282,9 +282,18 @@ export default function AdminAllTimeline() {
 
                           {positioned.map(({ shift, start, end, subCol }) => {
                             const filled = shift.volunteersRegistered?.length || 0;
+                            // "needed" is the shift's TOTAL target headcount
+                            // (same field, same meaning the backend uses to
+                            // decide a shift is full). totalSlots used to be
+                            // filled + needed, which double-counted the
+                            // people already signed up and made every shift
+                            // look like it needed more help than it does --
+                            // a shift sitting at exactly 3/3 was rendered as
+                            // "3/6". totalSlots is just needed.
                             const needed = shift.volunteersNeeded || 0;
-                            const totalSlots = filled + needed;
-                            const statusClass = needed === 0
+                            const totalSlots = needed;
+                            const remaining = Math.max(0, needed - filled);
+                            const statusClass = remaining === 0
                               ? "filled"
                               : filled === 0
                                 ? "critical"

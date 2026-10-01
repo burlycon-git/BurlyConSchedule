@@ -106,14 +106,22 @@ export default function AdminRoleView() {
     return phone;
   };
 
+  // NOTE: "needed" (shift.volunteersNeeded) is the shift's TOTAL target
+  // headcount -- the same field and the same meaning the backend's
+  // signUpForFlexShift uses to decide a shift is full ("Shift full" once
+  // volunteersRegistered.length >= volunteersNeeded). totalCapacity/
+  // totalUnfilled below previously summed filled + needed and needed
+  // directly, which double-counted people already signed up. A shift
+  // sitting at exactly 3/3 was being reported as still needing 3 more.
   const stats = shifts.reduce(
     (acc, s) => {
       const filled = s.volunteersRegistered?.length || 0;
       const needed = s.volunteersNeeded || 0;
+      const remaining = Math.max(0, needed - filled);
       acc.totalShifts += 1;
-      acc.totalCapacity += filled + needed;
+      acc.totalCapacity += needed;
       acc.totalFilled += filled;
-      acc.totalUnfilled += needed;
+      acc.totalUnfilled += remaining;
       if (needed > 0 && filled === 0) acc.critical += 1;
       return acc;
     },
@@ -129,7 +137,7 @@ export default function AdminRoleView() {
       const filled = s.volunteersRegistered?.length || 0;
       const needed = s.volunteersNeeded || 0;
       if (filter === "critical") return needed > 0 && filled === 0;
-      if (filter === "needsHelp") return needed > 0;
+      if (filter === "needsHelp") return filled < needed;
       return true;
     })
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -534,9 +542,13 @@ function TimelineView({ shifts, onEdit, onDelete, formatTime, formatPhone }) {
 
         {positioned.map(({ shift, start, end, column }) => {
           const filled = shift.volunteersRegistered?.length || 0;
+          // "needed" is the shift's TOTAL target headcount, same field and
+          // meaning the backend uses to gate signups. totalSlots used to be
+          // filled + needed (double counting); it's just needed.
           const needed = shift.volunteersNeeded || 0;
-          const totalSlots = filled + needed;
-          const statusClass = needed === 0 ? "filled" : filled === 0 ? "critical" : "partial";
+          const totalSlots = needed;
+          const remaining = Math.max(0, needed - filled);
+          const statusClass = remaining === 0 ? "filled" : filled === 0 ? "critical" : "partial";
 
           const top = (start - HOUR_START) * HOUR_HEIGHT;
           const height = (end - start) * HOUR_HEIGHT;

@@ -94,7 +94,22 @@ export default function AdminDashboard() {
         results.forEach((res) => {
           if (res.status === "fulfilled") {
             const { date, json } = res.value;
-            const filtered = json.filter((n) => n.volunteersNeeded > 0);
+            // NOTE: volunteersNeeded is the TOTAL headcount target for a
+            // shift (same semantics the backend's signUpForFlexShift uses
+            // to decide "Shift full", and what ShiftForm's "Volunteers
+            // Needed" field means when a shift is created). A shift that's
+            // already fully staffed still has volunteersNeeded > 0 -- it
+            // just also has volunteersRegistered.length >= volunteersNeeded.
+            // So "does this shift still need help" is volunteersNeeded >
+            // registered.length, not just volunteersNeeded > 0. The old
+            // version of this filter used the latter, which meant a shift
+            // sitting at exactly 3/3 kept showing up here as still needing
+            // 3 more volunteers.
+            const filtered = json.filter(
+              (n) =>
+                (n.volunteersNeeded || 0) >
+                (n.volunteersRegistered?.length || 0),
+            );
             if (filtered.length) allNeeds[date] = filtered;
             total += json.length;
 
@@ -173,20 +188,29 @@ export default function AdminDashboard() {
       }
 
       const registered = shift.volunteersRegistered?.length || 0;
+      // "needed" here is the shift's TOTAL target headcount (matches the
+      // backend and ShiftForm's definition of volunteersNeeded), NOT "how
+      // many more on top of who's already signed up." Capacity is just
+      // that total -- it was previously computed as filled + needed, which
+      // double-counted the people already registered and made every
+      // shift's denominator look bigger (and its "still open" count look
+      // bigger) than it actually is.
       const needed = shift.volunteersNeeded || 0;
-      const capacity = shift.capacity || registered + needed;
+      const capacity = needed;
       const filled = registered;
+      const remaining = Math.max(0, needed - filled);
 
       deptMap[deptName].shifts.push({
         ...shift,
         filled,
         needed,
+        remaining,
         capacity,
       });
 
       deptMap[deptName].totalCapacity += capacity;
       deptMap[deptName].totalFilled += filled;
-      deptMap[deptName].totalUnfilled += needed;
+      deptMap[deptName].totalUnfilled += remaining;
 
       if (needed > 0 && registered === 0) {
         deptMap[deptName].criticalShifts++;
@@ -534,7 +558,7 @@ export default function AdminDashboard() {
                                       b.date,
                                     );
                                     if (dateCompare !== 0) return dateCompare;
-                                    return b.needed - a.needed;
+                                    return b.remaining - a.remaining;
                                   })
                                   .map((shift, idx) => {
                                     const shiftPercentage =
@@ -546,7 +570,7 @@ export default function AdminDashboard() {
                                         : 0;
                                     const shiftPercentageStr =
                                       shiftPercentage + "%";
-                                    const isUnfilled = shift.needed > 0;
+                                    const isUnfilled = shift.remaining > 0;
                                     const hasVolunteers = !!(
                                       shift.volunteersRegistered &&
                                       shift.volunteersRegistered.length > 0
@@ -555,7 +579,7 @@ export default function AdminDashboard() {
                                     let badgeClass = "modern-shift-badge ";
                                     if (shift.filled === 0) {
                                       badgeClass += "critical";
-                                    } else if (shift.needed <= 2) {
+                                    } else if (shift.remaining <= 2) {
                                       badgeClass += "minor";
                                     } else {
                                       badgeClass += "warning";
@@ -580,7 +604,7 @@ export default function AdminDashboard() {
                                           </div>
                                           {isUnfilled && (
                                             <span className={badgeClass}>
-                                              {shift.needed} needed
+                                              {shift.remaining} needed
                                             </span>
                                           )}
                                         </div>
@@ -665,12 +689,25 @@ export default function AdminDashboard() {
                   ) : (
                     <div className="modern-gaps-grid">
                       {Object.entries(needsByDate).map(([date, needs]) => {
-                        const totalNeeded = Array.isArray(needs)
-                          ? needs.reduce(
-                              (sum, n) => sum + (n.volunteersNeeded || 0),
-                              0,
-                            )
-                          : 0;
+                        // needs here has already been pre-filtered (above,
+                        // in loadData) to shifts where volunteersNeeded >
+                        // registered.length, so "remaining" below is always
+                        // positive for everything rendered in this card.
+                        const withRemaining = Array.isArray(needs)
+                          ? needs.map((n) => ({
+                              ...n,
+                              remaining: Math.max(
+                                0,
+                                (n.volunteersNeeded || 0) -
+                                  (n.volunteersRegistered?.length || 0),
+                              ),
+                            }))
+                          : [];
+
+                        const totalNeeded = withRemaining.reduce(
+                          (sum, n) => sum + n.remaining,
+                          0,
+                        );
 
                         return (
                           <div key={date} className="modern-gap-card">
@@ -684,63 +721,58 @@ export default function AdminDashboard() {
                             </div>
 
                             <div className="modern-gap-shifts">
-                              {Array.isArray(needs) &&
-                                needs
-                                  .slice()
-                                  .sort(
-                                    (a, b) =>
-                                      (b.volunteersNeeded || 0) -
-                                      (a.volunteersNeeded || 0),
-                                  )
-                                  .map((n) => {
-                                    const needed = n.volunteersNeeded || 0;
-                                    const isCritical = needed >= 2;
-                                    const pillClass = isCritical
-                                      ? "modern-shift-pill critical"
-                                      : "modern-shift-pill minor";
-                                    const icon = isCritical ? "🚨" : "📉";
+                              {withRemaining
+                                .slice()
+                                .sort((a, b) => b.remaining - a.remaining)
+                                .map((n) => {
+                                  const needed = n.remaining;
+                                  const isCritical = needed >= 2;
+                                  const pillClass = isCritical
+                                    ? "modern-shift-pill critical"
+                                    : "modern-shift-pill minor";
+                                  const icon = isCritical ? "🚨" : "📉";
 
-                                    return (
-                                      <div
-                                        key={n._id}
-                                        className="modern-shift-item"
+                                  return (
+                                    <div
+                                      key={n._id}
+                                      className="modern-shift-item"
+                                    >
+                                      <a
+                                        href="https://www.burlyconvolunteers.com/admin/shifts"
+                                        className={pillClass}
                                       >
-                                        <a
-                                          href="https://www.burlyconvolunteers.com/admin/shifts"
-                                          className={pillClass}
+                                        <span className="modern-shift-icon">
+                                          {icon}
+                                        </span>
+                                        <div
+                                          style={{
+                                            flex: 1,
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            gap: "0.25rem",
+                                          }}
                                         >
-                                          <span className="modern-shift-icon">
-                                            {icon}
+                                          <span className="modern-shift-time">
+                                            {formatTime(n.startTime)}–
+                                            {formatTime(n.endTime)}
                                           </span>
-                                          <div
+                                          <span
                                             style={{
-                                              flex: 1,
-                                              display: "flex",
-                                              flexDirection: "column",
-                                              gap: "0.25rem",
+                                              fontSize: "0.75rem",
+                                              color: "#f9a8d4",
+                                              fontWeight: 500,
                                             }}
                                           >
-                                            <span className="modern-shift-time">
-                                              {formatTime(n.startTime)}–
-                                              {formatTime(n.endTime)}
-                                            </span>
-                                            <span
-                                              style={{
-                                                fontSize: "0.75rem",
-                                                color: "#f9a8d4",
-                                                fontWeight: 500,
-                                              }}
-                                            >
-                                              {n.role || "Role not specified"}
-                                            </span>
-                                          </div>
-                                          <span className="modern-shift-count">
-                                            ({needed})
+                                            {n.role || "Role not specified"}
                                           </span>
-                                        </a>
-                                      </div>
-                                    );
-                                  })}
+                                        </div>
+                                        <span className="modern-shift-count">
+                                          ({needed})
+                                        </span>
+                                      </a>
+                                    </div>
+                                  );
+                                })}
                             </div>
                           </div>
                         );
