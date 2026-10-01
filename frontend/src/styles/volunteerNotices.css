@@ -1,0 +1,227 @@
+/* Contact Coordinator button + both Header-level modals (login
+   acknowledgment and Contact Coordinator). Light defaults; dark mode
+   override at the bottom, matching the pattern in the other stylesheets. */
+
+.contact-coordinator-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(236, 72, 153, 0.08);
+  border: 1px solid rgba(236, 72, 153, 0.35);
+  color: #be185d;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.contact-coordinator-button:hover {
+  background: rgba(236, 72, 153, 0.16);
+  border-color: #ec4899;
+}
+
+.contact-coordinator-mobile {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* --- Shared modal shell for both the acknowledgment modal and the
+   Contact Coordinator modal --- */
+
+.volunteer-notice-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+}
+
+.volunteer-notice-modal {
+  background: #fff;
+  border: 1px solid rgba(236, 72, 153, 0.25);
+  border-radius: 14px;
+  padding: 1.75rem;
+  max-width: 480px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  color: #4b1d3f;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+}
+
+.volunteer-notice-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.25rem;
+  color: #be185d;
+}
+
+.volunteer-notice-subtitle {
+  margin: 0 0 1.1rem;
+  font-size: 0.9rem;
+  color: #6b2d5c;
+}
+
+.volunteer-notice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.volunteer-notice-item {
+  background: rgba(236, 72, 153, 0.06);
+  border: 1px solid rgba(236, 72, 153, 0.2);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+}
+
+.volunteer-notice-message {
+  margin: 0 0 0.4rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.volunteer-notice-date {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(75, 29, 63, 0.55);
+  margin-bottom: 0.6rem;
+}
+
+.volunteer-notice-ack-button {
+  background: linear-gradient(135deg, #ec4899, #be185d);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.4rem 0.9rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.volunteer-notice-ack-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.volunteer-notice-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.volunteer-notice-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.volunteer-notice-ack-all-button {
+  background: transparent;
+  border: 1px solid rgba(236, 72, 153, 0.45);
+  color: #be185d;
+  border-radius: 8px;
+  padding: 0.45rem 1rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.volunteer-notice-primary-button {
+  background: linear-gradient(135deg, #ec4899, #be185d);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1.1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.volunteer-notice-primary-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* --- Contact Coordinator modal specifics --- */
+
+.contact-coordinator-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(236, 72, 153, 0.3);
+  border-radius: 8px;
+  padding: 0.65rem 0.8rem;
+  color: #4b1d3f;
+  font: inherit;
+  resize: vertical;
+  min-height: 6rem;
+}
+
+.contact-coordinator-error {
+  color: #b91c1c;
+  font-size: 0.85rem;
+  margin: 0.6rem 0 0;
+}
+
+/* --- Dark mode --- */
+@media (prefers-color-scheme: dark) {
+  .contact-coordinator-button {
+    background: rgba(244, 114, 182, 0.12);
+    border-color: rgba(244, 114, 182, 0.4);
+    color: #f9a8d4;
+  }
+
+  .contact-coordinator-button:hover {
+    background: rgba(244, 114, 182, 0.22);
+    border-color: #f472b6;
+  }
+
+  .volunteer-notice-backdrop {
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .volunteer-notice-modal {
+    background: #1f1230;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: inherit;
+    box-shadow: none;
+  }
+
+  .volunteer-notice-title { color: #f9a8d4; }
+  .volunteer-notice-subtitle { color: rgba(241, 225, 236, 0.75); }
+
+  .volunteer-notice-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .volunteer-notice-date { color: rgba(241, 225, 236, 0.55); }
+
+  .volunteer-notice-ack-all-button {
+    border-color: rgba(244, 114, 182, 0.45);
+    color: #f9a8d4;
+  }
+
+  .contact-coordinator-textarea {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: inherit;
+  }
+
+  .contact-coordinator-error { color: #fca5a5; }
+}

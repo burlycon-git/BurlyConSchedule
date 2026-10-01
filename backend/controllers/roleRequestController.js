@@ -76,8 +76,8 @@ const listApprovedVolunteersForRole = async (req, res) => {
 // can report it without duplicating this logic twice.
 async function notifyRoleRequestDecision(user, role, approved) {
   const message = approved
-    ? emailService.createRoleRequestApprovedMessage({ role })
-    : emailService.createRoleRequestDeniedMessage({ role });
+    ? emailService.createInAppRoleRequestApprovedMessage({ role })
+    : emailService.createInAppRoleRequestDeniedMessage({ role });
 
   await User.findByIdAndUpdate(user._id, {
     $push: {

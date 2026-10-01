@@ -28,7 +28,7 @@
 
 .modern-header-inner {
   position: relative;
-  max-width: 1400px;
+  max-width: 1650px;
   margin: 0 auto;
   padding: 0.75rem 1.5rem;
   display: flex;
@@ -93,7 +93,7 @@
 .modern-nav-desktop {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   flex: 1;
   justify-content: flex-end;
   min-width: 0;
@@ -102,7 +102,7 @@
 .modern-nav-links {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
   flex-wrap: wrap;
 }
 
@@ -110,7 +110,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.85rem;
   border-radius: 0.75rem;
   text-decoration: none;
   color: var(--nav-link-color);
@@ -171,14 +171,14 @@
 .modern-user-section {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.6rem;
   flex-shrink: 0;
 }
 
 .modern-user-menu {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.6rem;
   flex-shrink: 0;
 }
 
@@ -186,7 +186,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.85rem;
   background: rgba(124, 58, 237, 0.05);
   border-radius: 0.75rem;
   border: 1px solid rgba(124, 58, 237, 0.1);
@@ -223,6 +223,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 160px;
 }
 
 .modern-user-status {
@@ -501,11 +502,11 @@
     padding: 0.75rem 1rem;
     gap: 1rem;
   }
-  
+
   .modern-logo-image {
     height: 44px;
   }
-  
+
   .modern-logo-text {
     display: none;
   }
@@ -516,20 +517,20 @@
     padding: 0.5rem 1rem;
     min-height: 60px;
   }
-  
+
   .modern-logo-image {
     height: 40px;
   }
-  
+
   .modern-mobile-nav-content {
     padding: 1rem;
   }
-  
+
   .modern-mobile-nav-link {
     padding: 0.75rem;
     min-height: 50px;
   }
-  
+
   .modern-mobile-login-button,
   .modern-mobile-logout-button {
     min-height: 45px;
@@ -542,43 +543,43 @@
     padding: 0.5rem 0.75rem;
     min-height: 56px;
   }
-  
+
   .modern-logo-image {
     height: 36px;
   }
-  
+
   .modern-mobile-nav-content {
     padding: 0.75rem;
     gap: 1rem;
   }
-  
+
   .modern-mobile-user-info {
     padding: 0.75rem;
   }
-  
+
   .modern-mobile-avatar {
     width: 36px;
     height: 36px;
     font-size: 0.875rem;
   }
-  
+
   .modern-mobile-user-name {
     font-size: 0.875rem;
   }
-  
+
   .modern-mobile-user-status {
     font-size: 0.75rem;
   }
-  
+
   .modern-mobile-nav-link {
     padding: 0.75rem;
     min-height: 48px;
   }
-  
+
   .modern-mobile-nav-link .modern-nav-text {
     font-size: 0.875rem;
   }
-  
+
   .modern-mobile-login-button,
   .modern-mobile-logout-button {
     padding: 0.75rem;
@@ -592,20 +593,20 @@
     padding: 0.5rem;
     min-height: 52px;
   }
-  
+
   .modern-logo-image {
     height: 32px;
   }
-  
+
   .modern-mobile-nav-content {
     padding: 0.5rem;
   }
-  
+
   .modern-mobile-nav-link {
     padding: 0.5rem;
     min-height: 44px;
   }
-  
+
   .modern-mobile-login-button,
   .modern-mobile-logout-button {
     padding: 0.5rem;

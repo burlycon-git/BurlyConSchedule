@@ -27,6 +27,20 @@ export default function AdminRoleView() {
   const [deletingShift, setDeletingShift] = useState(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
+  // "Bad shift" cleanup: pull one volunteer off a shift (with a notice), or
+  // -- folded into the Delete dialog below -- move everyone on a shift to a
+  // different one, or remove them all, before the shift itself goes away.
+  // Calls the removeVolunteerFromShift / reassignShiftVolunteers routes
+  // added alongside the notification system.
+  const [removingVolunteerId, setRemovingVolunteerId] = useState(null);
+
+  // Delete dialog sub-state: once a shift with volunteers is opened for
+  // deletion, deleteMode picks which path they take before anything is
+  // deleted -- null means "show the choice", not yet decided.
+  const [deleteMode, setDeleteMode] = useState(null);
+  const [reassignTargetId, setReassignTargetId] = useState("");
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
   // Only relevant when roleInfo.restricted is true -- see the two panels
   // rendered further down and loadRoleRequestData below.
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -276,21 +290,35 @@ export default function AdminRoleView() {
     }
   };
 
+  // One dialog handles all three "something's wrong with this shift" paths:
+  // - no volunteers: just delete it
+  // - volunteers, choosing "Move": reassignShiftVolunteers moves everyone
+  //   to another shift and deletes this one in a single call
+  // - volunteers, choosing "Remove": removeVolunteerFromShift notifies and
+  //   removes each person, then the shift itself is deleted once it's empty
   const openDeleteDialog = (shift) => {
     setDeletingShift(shift);
     setDeleteConfirmText("");
+    setDeleteMode(null);
+    setReassignTargetId("");
   };
 
   const closeDeleteDialog = () => {
     setDeletingShift(null);
     setDeleteConfirmText("");
+    setDeleteMode(null);
+    setReassignTargetId("");
   };
 
+  const reassignTargetOptions = deletingShift
+    ? shifts
+        .filter((s) => s._id !== deletingShift._id)
+        .sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime))
+    : [];
+
+  // Plain delete -- no volunteers on the shift, nothing to notify.
   const handleConfirmDelete = async () => {
     if (!deletingShift) return;
-    const hasVolunteers = (deletingShift.volunteersRegistered?.length || 0) > 0;
-    if (hasVolunteers && deleteConfirmText !== "DELETE") return;
-
     try {
       const res = await fetch(`${API_BASE}/api/volunteer/${deletingShift._id}`, {
         method: "DELETE",
@@ -300,6 +328,104 @@ export default function AdminRoleView() {
       closeDeleteDialog();
     } catch (e) {
       alert(`Failed to delete: ${e.message}`);
+    }
+  };
+
+  // "Move" path: move everyone to the chosen target shift; the backend
+  // deletes this shift as part of the same call.
+  const handleConfirmMove = async () => {
+    if (!deletingShift || !reassignTargetId) return;
+    setDeleteSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/volunteer/${deletingShift._id}/reassign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetShiftId: reassignTargetId }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const result = await res.json();
+      closeDeleteDialog();
+      await loadAll(); // shift topology changed (source deleted, target headcount changed)
+      const skippedNote =
+        result.skipped?.length > 0 ? ` (${result.skipped.length} skipped — see console)` : "";
+      if (result.skipped?.length > 0) console.log("Reassign skipped:", result.skipped);
+      alert(`Moved ${result.moved?.length || 0} volunteer(s) to the new shift.${skippedNote}`);
+    } catch (e) {
+      alert(`Failed to move volunteers: ${e.message}`);
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
+
+  // "Remove" path: notify + remove each volunteer, then delete the shift
+  // once it's empty. Requires typed DELETE since there's no replacement.
+  const handleConfirmRemoveAndDelete = async () => {
+    if (!deletingShift || deleteConfirmText !== "DELETE") return;
+    setDeleteSubmitting(true);
+    try {
+      const volunteers = deletingShift.volunteersRegistered || [];
+      for (const v of volunteers) {
+        const res = await fetch(
+          `${API_BASE}/api/volunteer/${deletingShift._id}/remove-volunteer`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: v._id, reason: "This shift was cancelled" }),
+          }
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status} removing ${v.email || v._id}`);
+      }
+
+      const delRes = await fetch(`${API_BASE}/api/volunteer/${deletingShift._id}`, {
+        method: "DELETE",
+      });
+      if (!delRes.ok) throw new Error(`HTTP ${delRes.status} deleting shift`);
+
+      setShifts((prev) => prev.filter((s) => s._id !== deletingShift._id));
+      closeDeleteDialog();
+    } catch (e) {
+      alert(`Failed partway through removing volunteers: ${e.message}. Check the shift before retrying.`);
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
+
+  // Pull a single volunteer off a shift without deleting it (e.g. an
+  // unapproved signup on a restricted role). Sends them a notice.
+  const handleRemoveVolunteer = async (shift, volunteer) => {
+    const name = volunteer.preferredName || volunteer.email || "this volunteer";
+    if (!window.confirm(`Remove ${name} from this shift? They'll be notified.`)) return;
+
+    const reason = window.prompt(
+      "Optional: a short reason to include in their notice (leave blank to skip)",
+      ""
+    );
+    if (reason === null) return; // they hit Cancel on the prompt itself
+
+    setRemovingVolunteerId(volunteer._id);
+    try {
+      const res = await fetch(`${API_BASE}/api/volunteer/${shift._id}/remove-volunteer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: volunteer._id, reason: reason || undefined }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setShifts((prev) =>
+        prev.map((s) =>
+          s._id === shift._id
+            ? {
+                ...s,
+                volunteersRegistered: s.volunteersRegistered.filter(
+                  (v) => v._id !== volunteer._id
+                ),
+              }
+            : s
+        )
+      );
+    } catch (e) {
+      alert(`Failed to remove volunteer: ${e.message}`);
+    } finally {
+      setRemovingVolunteerId(null);
     }
   };
 
@@ -536,6 +662,8 @@ export default function AdminRoleView() {
               shifts={dayShifts}
               onEdit={handleEdit}
               onDelete={openDeleteDialog}
+              onRemoveVolunteer={handleRemoveVolunteer}
+              removingVolunteerId={removingVolunteerId}
               formatTime={formatTime}
               formatPhone={formatPhone}
             />
@@ -570,6 +698,8 @@ export default function AdminRoleView() {
 
       {deletingShift && (() => {
         const filled = deletingShift.volunteersRegistered?.length || 0;
+        const regs = deletingShift.volunteersRegistered || [];
+
         return (
           <div className="role-view-modal-backdrop" onClick={closeDeleteDialog}>
             <div className="role-view-modal" onClick={(e) => e.stopPropagation()}>
@@ -579,17 +709,26 @@ export default function AdminRoleView() {
                 {formatTime(deletingShift.startTime)}–{formatTime(deletingShift.endTime)}
               </p>
 
-              {filled > 0 ? (
+              {filled === 0 ? (
+                <>
+                  <p>No volunteers are signed up for this shift, so it's safe to delete.</p>
+                  <div className="role-view-modal-actions">
+                    <button onClick={closeDeleteDialog}>Cancel</button>
+                    <button className="role-view-delete" onClick={handleConfirmDelete}>
+                      Delete shift
+                    </button>
+                  </div>
+                </>
+              ) : deleteMode === null ? (
                 <>
                   <div className="role-view-edit-warning danger">
-                    ⚠️ <strong>Wait!</strong> {filled} volunteer{filled !== 1 ? "s are" : " is"} signed up for this shift. Deleting will remove them from this shift entirely. They will NOT be notified — you must contact them yourself.
+                    ⚠️ <strong>Wait!</strong> {filled} volunteer{filled !== 1 ? "s are" : " is"} signed up for this shift. Decide what happens to them first.
                   </div>
 
                   <div className="role-view-contact-list">
                     <strong>Affected volunteers:</strong>
-                    <p className="role-view-contact-hint">👇 Tap a phone or email to reach out</p>
                     <ul>
-                      {deletingShift.volunteersRegistered.map((v) => (
+                      {regs.map((v) => (
                         <VolunteerContactCard
                           key={v?._id || v?.id || v?.email}
                           volunteer={v}
@@ -598,6 +737,66 @@ export default function AdminRoleView() {
                       ))}
                     </ul>
                   </div>
+
+                  <div className="role-view-modal-actions">
+                    <button onClick={closeDeleteDialog}>Cancel</button>
+                    <button onClick={() => setDeleteMode("remove")}>
+                      Remove &amp; notify
+                    </button>
+                    <button
+                      className="modern-primary-button"
+                      onClick={() => setDeleteMode("move")}
+                    >
+                      Move to another shift
+                    </button>
+                  </div>
+                </>
+              ) : deleteMode === "move" ? (
+                <>
+                  <p>
+                    {filled} volunteer{filled !== 1 ? "s" : ""} will move to the shift you pick below,
+                    get a notice about the change, and this shift will be deleted.
+                  </p>
+
+                  <label>
+                    Move them to:
+                    <select
+                      value={reassignTargetId}
+                      onChange={(e) => setReassignTargetId(e.target.value)}
+                      autoFocus
+                    >
+                      <option value="">Select a shift…</option>
+                      {reassignTargetOptions.map((s) => {
+                        const sFilled = s.volunteersRegistered?.length || 0;
+                        const sNeeded = s.volunteersNeeded || 0;
+                        return (
+                          <option key={s._id} value={s._id}>
+                            {formatDateLabel(s.date)} · {formatTime(s.startTime)}–{formatTime(s.endTime)} ({sFilled}/{sNeeded})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </label>
+
+                  <div className="role-view-modal-actions">
+                    <button onClick={() => setDeleteMode(null)} disabled={deleteSubmitting}>
+                      Back
+                    </button>
+                    <button
+                      className="modern-primary-button"
+                      onClick={handleConfirmMove}
+                      disabled={!reassignTargetId || deleteSubmitting}
+                    >
+                      {deleteSubmitting ? "Moving…" : `Move ${filled} & delete this shift`}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p>
+                    Each of the {filled} volunteer{filled !== 1 ? "s" : ""} above will get a notice that this
+                    shift was cancelled, then the shift will be deleted. There's no replacement shift for them to move to.
+                  </p>
 
                   <label>
                     Type <strong>DELETE</strong> to confirm:
@@ -610,23 +809,15 @@ export default function AdminRoleView() {
                   </label>
 
                   <div className="role-view-modal-actions">
-                    <button onClick={closeDeleteDialog}>Cancel</button>
+                    <button onClick={() => setDeleteMode(null)} disabled={deleteSubmitting}>
+                      Back
+                    </button>
                     <button
                       className="role-view-delete"
-                      onClick={handleConfirmDelete}
-                      disabled={deleteConfirmText !== "DELETE"}
+                      onClick={handleConfirmRemoveAndDelete}
+                      disabled={deleteConfirmText !== "DELETE" || deleteSubmitting}
                     >
-                      Delete shift
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p>No volunteers are signed up for this shift, so it's safe to delete.</p>
-                  <div className="role-view-modal-actions">
-                    <button onClick={closeDeleteDialog}>Cancel</button>
-                    <button className="role-view-delete" onClick={handleConfirmDelete}>
-                      Delete shift
+                      {deleteSubmitting ? "Removing…" : "Remove volunteers & delete shift"}
                     </button>
                   </div>
                 </>
@@ -656,7 +847,15 @@ function timeToHours(timeStr, isEndTime = false, startHours = null) {
   return hours;
 }
 
-function TimelineView({ shifts, onEdit, onDelete, formatTime, formatPhone }) {
+function TimelineView({
+  shifts,
+  onEdit,
+  onDelete,
+  onRemoveVolunteer,
+  removingVolunteerId,
+  formatTime,
+  formatPhone,
+}) {
   const [expandedShift, setExpandedShift] = useState(null);
 
   if (shifts.length === 0) {
@@ -803,6 +1002,8 @@ function TimelineView({ shifts, onEdit, onDelete, formatTime, formatPhone }) {
                           key={v?._id || v?.id || v?.email}
                           volunteer={v}
                           formatPhone={formatPhone}
+                          onRemove={onRemoveVolunteer ? () => onRemoveVolunteer(shift, v) : null}
+                          removing={removingVolunteerId === v?._id}
                         />
                       ))}
                     </ul>
@@ -907,7 +1108,7 @@ function ShiftEditForm({ shift, formData, setFormData, eventDates, onCancel, onS
   );
 }
 
-function VolunteerContactCard({ volunteer, formatPhone }) {
+function VolunteerContactCard({ volunteer, formatPhone, onRemove, removing }) {
   const v = volunteer || {};
   const name = v.preferredName || v.name || v.email || "Volunteer";
   const phone = v.phone;
@@ -917,7 +1118,21 @@ function VolunteerContactCard({ volunteer, formatPhone }) {
 
   return (
     <li className="volunteer-contact-card">
-      <div className="volunteer-contact-name">👤 {name}</div>
+      <div className="volunteer-contact-top">
+        <div className="volunteer-contact-name">👤 {name}</div>
+        {onRemove && (
+          <button
+            type="button"
+            className="volunteer-contact-remove"
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            disabled={removing}
+            title="Remove from this shift"
+            aria-label="Remove from this shift"
+          >
+            {removing ? "…" : "✕"}
+          </button>
+        )}
+      </div>
       <div className="volunteer-contact-methods">
         {phone && (
           <a href={phoneHref} className="volunteer-contact-link phone"><span className="volunteer-contact-icon">📞</span><span>{formatPhone(phone)}</span></a>

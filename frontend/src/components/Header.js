@@ -1,7 +1,11 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import "../styles/header.css";
-import { hasRole } from "../utils/authUtils";
+import "../styles/volunteerNotices.css";
+import { hasRole, getUserId } from "../utils/authUtils";
+
+const API_BASE = process.env.REACT_APP_API_BASE;
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -31,6 +35,7 @@ export default function Header() {
 
   const isLoggedIn = !!localStorage.getItem("access_token");
   const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const userId = getUserId(); // fusionAuthId, used for the two volunteer-facing features below
 
   // display name or email
   const displayName =
@@ -40,24 +45,122 @@ export default function Header() {
   const initial = (displayName || "U").charAt(0).toUpperCase();
 
   // Role
-  const isAdmin = hasRole("Admin");
-  const isLead = hasRole("Lead");
-  const isVolunteerCoordinator = hasRole("VolunteerCoordinator");
-  const roleLabel = isAdmin
-    ? "Admin"
-    : isVolunteerCoordinator
-      ? "Volunteer Coordinator"
-      : isLead
-        ? "Lead"
-        : "Volunteer";
-
-  // VolunteerCoordinator ONLY -- see AdminContactMessages.jsx for why Admin
-  // isn't included here too.
-  const canSeeMessages = isVolunteerCoordinator;
+  const roleLabel = hasRole("Admin") ? "Admin" : hasRole("Lead") ? "Lead" : "Volunteer";
 
   const selfServiceUrl = `${domain}/account/?client_id=${clientId}`;
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+
+  // ---------------------------------------------------------------------
+  // Login acknowledgment modal: pops up whenever a logged-in volunteer has
+  // any notification (shift removed/reassigned, role request decided) they
+  // haven't acknowledged yet. Lives in Header because Header is mounted on
+  // every page, so this effectively fires "on login" / "on next page load"
+  // regardless of which page they land on.
+  // ---------------------------------------------------------------------
+  const [unacknowledged, setUnacknowledged] = useState([]);
+  const [ackingId, setAckingId] = useState(null);
+
+  const loadUnacknowledged = useCallback(() => {
+    if (!userId) return;
+    fetch(`${API_BASE}/api/volunteer/notifications/${userId}`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setUnacknowledged(Array.isArray(data) ? data : []))
+      .catch((err) => console.error("Error loading notifications:", err));
+  }, [userId]);
+
+  useEffect(() => {
+    loadUnacknowledged();
+  }, [loadUnacknowledged]);
+
+  const formatNoticeDate = (dateStr) => {
+    if (!dateStr) return "";
+    try {
+      return new Date(dateStr).toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    } catch {
+      return "";
+    }
+  };
+
+  const handleAcknowledge = async (notificationId) => {
+    setAckingId(notificationId);
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/volunteer/notifications/${userId}/${notificationId}/acknowledge`,
+        { method: "POST" }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setUnacknowledged((prev) => prev.filter((n) => n._id !== notificationId));
+    } catch (err) {
+      alert("Couldn't mark that as read -- please try again.");
+    } finally {
+      setAckingId(null);
+    }
+  };
+
+  const handleAcknowledgeAll = async () => {
+    setAckingId("all");
+    try {
+      await Promise.all(
+        unacknowledged.map((n) =>
+          fetch(`${API_BASE}/api/volunteer/notifications/${userId}/${n._id}/acknowledge`, {
+            method: "POST",
+          })
+        )
+      );
+      setUnacknowledged([]);
+    } catch (err) {
+      alert("Couldn't mark everything as read -- please try again.");
+    } finally {
+      setAckingId(null);
+    }
+  };
+
+  // ---------------------------------------------------------------------
+  // Contact Coordinator button + modal: lets a logged-in volunteer send an
+  // in-app message instead of calling/texting. Backend logs it as a
+  // ContactMessage and alerts the coordinator by email.
+  // ---------------------------------------------------------------------
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactMessage, setContactMessage] = useState("");
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactSent, setContactSent] = useState(false);
+  const [contactError, setContactError] = useState(null);
+
+  const openContactModal = () => {
+    setContactMessage("");
+    setContactError(null);
+    setContactSent(false);
+    setShowContactModal(true);
+    setIsMobileMenuOpen(false);
+  };
+
+  const closeContactModal = () => setShowContactModal(false);
+
+  const handleSubmitContact = async () => {
+    if (!contactMessage.trim()) return;
+    setContactSubmitting(true);
+    setContactError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/volunteer/contact-coordinator`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, message: contactMessage.trim() }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setContactSent(true);
+      setContactMessage("");
+    } catch (err) {
+      setContactError("Couldn't send your message -- please try again in a bit.");
+    } finally {
+      setContactSubmitting(false);
+    }
+  };
 
   return (
     <header className="modern-header">
@@ -99,23 +202,28 @@ export default function Header() {
               <span className="modern-nav-text">My Profile</span>
             </Link>
 
-            {(isAdmin || isLead) && (
+            {(hasRole("Admin") || hasRole("Lead")) && (
               <Link to="/admin" className="modern-nav-link admin">
                 <span className="modern-nav-text">Admin</span>
                 <span className="modern-admin-badge">Admin</span>
-              </Link>
-            )}
-
-            {canSeeMessages && (
-              <Link to="/vc" className="modern-nav-link admin">
-                <span className="modern-nav-text">Coordinator</span>
-                <span className="modern-admin-badge">VC</span>
               </Link>
             )}
           </div>
 
           {/* User Section */}
           <div className="modern-user-section">
+            {isLoggedIn && (
+              <button
+                type="button"
+                className="contact-coordinator-button"
+                onClick={openContactModal}
+                title="Send a message to your volunteer coordinator"
+              >
+                <span className="contact-coordinator-icon">💬</span>
+                <span className="contact-coordinator-text">Contact Coordinator</span>
+              </button>
+            )}
+
             {isLoggedIn ? (
               <div className="modern-user-menu">
                 <a
@@ -213,7 +321,7 @@ export default function Header() {
               <span className="modern-nav-text">My Profile</span>
             </Link>
 
-            {(isAdmin || isLead) && (
+            {(hasRole("Admin") || hasRole("Lead")) && (
               <Link
                 to="/admin"
                 className="modern-mobile-nav-link admin"
@@ -223,18 +331,18 @@ export default function Header() {
                 <span className="modern-mobile-admin-badge">Admin</span>
               </Link>
             )}
-
-            {canSeeMessages && (
-              <Link
-                to="/vc"
-                className="modern-mobile-nav-link admin"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <span className="modern-nav-text">Coordinator</span>
-                <span className="modern-mobile-admin-badge">VC</span>
-              </Link>
-            )}
           </div>
+
+          {isLoggedIn && (
+            <button
+              type="button"
+              className="modern-mobile-nav-link contact-coordinator-mobile"
+              onClick={openContactModal}
+            >
+              <span className="contact-coordinator-icon">💬</span>
+              <span className="modern-nav-text">Contact Coordinator</span>
+            </button>
+          )}
 
           <div className="modern-mobile-auth-section">
             {isLoggedIn ? (
@@ -266,6 +374,114 @@ export default function Header() {
           className="modern-mobile-overlay"
           onClick={() => setIsMobileMenuOpen(false)}
         ></div>
+      )}
+
+      {/* Login acknowledgment modal -- pops up whenever there's anything
+          unacknowledged. Shows on top of whichever page the volunteer landed
+          on, since Header renders everywhere. Rendered via a portal straight
+          into document.body: the header has a blur/backdrop effect, and any
+          ancestor with a CSS filter/backdrop-filter/transform becomes the
+          containing block for "position: fixed" descendants, which was
+          clipping this modal to the header's own box instead of the full
+          viewport. Portaling out of the header sidesteps that entirely. */}
+      {unacknowledged.length > 0 && createPortal(
+        <div className="volunteer-notice-backdrop">
+          <div className="volunteer-notice-modal">
+            <h3 className="volunteer-notice-title">
+              📣 {unacknowledged.length === 1 ? "You have an update" : `You have ${unacknowledged.length} updates`}
+            </h3>
+            <p className="volunteer-notice-subtitle">
+              Please review and acknowledge before continuing.
+            </p>
+
+            <div className="volunteer-notice-list">
+              {unacknowledged.map((n) => (
+                <div key={n._id} className="volunteer-notice-item">
+                  <p className="volunteer-notice-message">{n.message}</p>
+                  {n.createdAt && (
+                    <span className="volunteer-notice-date">{formatNoticeDate(n.createdAt)}</span>
+                  )}
+                  <button
+                    type="button"
+                    className="volunteer-notice-ack-button"
+                    onClick={() => handleAcknowledge(n._id)}
+                    disabled={ackingId === n._id || ackingId === "all"}
+                  >
+                    {ackingId === n._id ? "…" : "Acknowledge"}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {unacknowledged.length > 1 && (
+              <div className="volunteer-notice-actions">
+                <button
+                  type="button"
+                  className="volunteer-notice-ack-all-button"
+                  onClick={handleAcknowledgeAll}
+                  disabled={ackingId !== null}
+                >
+                  {ackingId === "all" ? "Acknowledging…" : "Acknowledge all"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Contact Coordinator modal -- also portaled, same reason as above. */}
+      {showContactModal && createPortal(
+        <div className="volunteer-notice-backdrop" onClick={closeContactModal}>
+          <div className="volunteer-notice-modal" onClick={(e) => e.stopPropagation()}>
+            {contactSent ? (
+              <>
+                <h3 className="volunteer-notice-title">✅ Message sent</h3>
+                <p className="volunteer-notice-subtitle">
+                  Your volunteer coordinator has been notified and will follow up with you.
+                </p>
+                <div className="volunteer-notice-actions">
+                  <button className="volunteer-notice-primary-button" onClick={closeContactModal}>
+                    Close
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="volunteer-notice-title">💬 Contact your coordinator</h3>
+                <p className="volunteer-notice-subtitle">
+                  Send a message directly -- no need to call. We'll get back to you as soon as we can.
+                </p>
+
+                <textarea
+                  className="contact-coordinator-textarea"
+                  rows={5}
+                  placeholder="What's going on?"
+                  value={contactMessage}
+                  onChange={(e) => setContactMessage(e.target.value)}
+                  autoFocus
+                />
+
+                {contactError && <p className="contact-coordinator-error">{contactError}</p>}
+
+                <div className="volunteer-notice-actions">
+                  <button type="button" onClick={closeContactModal} disabled={contactSubmitting}>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="volunteer-notice-primary-button"
+                    onClick={handleSubmitContact}
+                    disabled={!contactMessage.trim() || contactSubmitting}
+                  >
+                    {contactSubmitting ? "Sending…" : "Send message"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>,
+        document.body
       )}
     </header>
   );

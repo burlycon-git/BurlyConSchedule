@@ -300,6 +300,16 @@
   margin-top: 0.25rem;
 }
 
+.role-view-modal select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(236, 72, 153, 0.3);
+  border-radius: 6px;
+  color: #4b1d3f;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+}
+
 .role-view-modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -615,6 +625,13 @@
   margin-bottom: 0;
 }
 
+.volunteer-contact-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .volunteer-contact-name {
   font-size: 1rem;
   font-weight: 600;
@@ -659,6 +676,39 @@
   font-size: 0.85rem;
   color: #8b3a6e;
   font-style: italic;
+}
+
+/* "Remove from shift" icon button on a roster card -- a small ✕ next to
+   the name, muted until hover, only rendered in the live timeline roster
+   (never in the read-only edit/delete confirmation lists, since
+   AdminRoleView only passes onRemove there). */
+.volunteer-contact-remove {
+  flex-shrink: 0;
+  width: 1.4rem;
+  height: 1.4rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(75, 29, 63, 0.2);
+  color: rgba(75, 29, 63, 0.55);
+  font-size: 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.volunteer-contact-remove:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: #dc2626;
+  color: #b91c1c;
+}
+
+.volunteer-contact-remove:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* Tighter contact card spacing inside timeline blocks */
@@ -788,6 +838,12 @@
   }
 
   .role-view-modal input[type="text"] {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: inherit;
+  }
+
+  .role-view-modal select {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.15);
     color: inherit;
@@ -947,5 +1003,16 @@
 
   .volunteer-contact-none {
     color: rgba(241, 225, 236, 0.55);
+  }
+
+  .volunteer-contact-remove {
+    border-color: rgba(241, 225, 236, 0.25);
+    color: rgba(241, 225, 236, 0.55);
+  }
+
+  .volunteer-contact-remove:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: #ef4444;
+    color: #fca5a5;
   }
 }

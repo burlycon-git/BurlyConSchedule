@@ -116,6 +116,20 @@ class EmailService {
     );
   }
 
+  // In-app version of the same notice -- shown inside the login
+  // acknowledgment modal, where "please log in" makes no sense since
+  // they're already logged in reading it. Keeps the apology/reason, drops
+  // the login prompt.
+  createInAppRemovalMessage({ role, date, startTime, reason }) {
+    const timeFormatted = this.formatTime(startTime);
+    const reasonText = reason ? ` (${reason})` : "";
+    return (
+      `Oops, sorry -- there's been a change and we had to remove you from your "${role}" shift ` +
+      `on ${date} at ${timeFormatted}${reasonText}.\n\n` +
+      `Questions? Use the Contact Coordinator button.\n\n-- ${COORDINATOR_NAME}`
+    );
+  }
+
   // ---------- Moved to a different shift ----------
 
   createShiftChangeMessage({ oldRole, newRole, newDate, newStartTime }) {
@@ -131,6 +145,17 @@ class EmailService {
 
   async sendShiftChangeNotice(email, details) {
     return this.send(email, "Your BurlyCon shift has changed", this.createShiftChangeMessage(details));
+  }
+
+  // In-app version -- see note on createInAppRemovalMessage above.
+  createInAppShiftChangeMessage({ oldRole, newRole, newDate, newStartTime }) {
+    const timeFormatted = this.formatTime(newStartTime);
+    return (
+      `Oops, sorry -- there's been a change to your "${oldRole}" shift. We've moved you to ` +
+      `"${newRole}" on ${newDate} at ${timeFormatted} instead.\n\n` +
+      `Take a look at your shifts and make sure this still works for you. ` +
+      `Questions? Use the Contact Coordinator button.\n\n-- ${COORDINATOR_NAME}`
+    );
   }
 
   // ---------- Volunteer -> coordinator, via the Contact Coordinator button ----------
@@ -170,6 +195,11 @@ class EmailService {
     );
   }
 
+  // In-app version -- see note on createInAppRemovalMessage above.
+  createInAppRoleRequestApprovedMessage({ role }) {
+    return `Good news -- you're approved for "${role}"! Head to the volunteer shifts page to sign up.\n\n-- ${COORDINATOR_NAME}`;
+  }
+
   createRoleRequestDeniedMessage({ role }) {
     return (
       `Hi,\n\nThis is ${COORDINATOR_NAME}, your BurlyCon volunteer coordinator.\n\n` +
@@ -184,6 +214,15 @@ class EmailService {
       email,
       `Update on your "${details.role}" request`,
       this.createRoleRequestDeniedMessage(details)
+    );
+  }
+
+  // In-app version -- see note on createInAppRemovalMessage above.
+  createInAppRoleRequestDeniedMessage({ role }) {
+    return (
+      `Thanks for your interest in "${role}" -- we're not able to approve it right now. ` +
+      `You're welcome to check back and request again later.\n\n` +
+      `Questions? Use the Contact Coordinator button.\n\n-- ${COORDINATOR_NAME}`
     );
   }
 }

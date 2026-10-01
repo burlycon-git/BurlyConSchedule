@@ -273,7 +273,7 @@ const removeVolunteerFromShift = async (req, res) => {
     // record (see User.notifications), so it doesn't depend on email working,
     // on notificationPrefs, or on an email being on file. Email below is a
     // best-effort bonus on top of it, not the only copy that exists.
-    const inAppMessage = emailService.createRemovalMessage({
+    const inAppMessage = emailService.createInAppRemovalMessage({
       role: shift.role,
       date: shift.date,
       startTime: shift.startTime,
@@ -371,7 +371,7 @@ const reassignShiftVolunteers = async (req, res) => {
       // Same as removeVolunteerFromShift: the in-app notice is written
       // unconditionally and is the channel of record, independent of email
       // outcome or notificationPrefs.
-      const inAppMessage = emailService.createShiftChangeMessage({
+      const inAppMessage = emailService.createInAppShiftChangeMessage({
         oldRole: sourceShift.role,
         newRole: targetShift.role,
         newDate: targetShift.date,
