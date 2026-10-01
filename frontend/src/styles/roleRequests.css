@@ -1,0 +1,142 @@
+/* Shared styling for the restricted-role / approval-request feature.
+   Imported by AdminRoles.jsx, AdminRoleView.jsx, and VolunteerShifts.jsx
+   so these bits look consistent across all three without duplicating CSS. */
+
+/* --- AdminRoles.jsx: role card tag + form checkbox --- */
+
+.modern-card-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.restricted-role-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+}
+
+.restricted-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  line-height: 1.4;
+}
+
+/* --- AdminRoleView.jsx: pending requests + approved volunteers panels --- */
+
+.role-request-panel {
+  background: rgba(30, 20, 35, 0.6);
+  border: 1px solid rgba(249, 168, 212, 0.25);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.role-request-panel-title {
+  margin: 0 0 1rem;
+  color: #f472b6;
+  font-size: 1.1rem;
+}
+
+.role-request-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.role-request-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.role-request-who {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.role-request-name {
+  font-weight: 600;
+}
+
+.role-request-contact {
+  font-size: 0.8rem;
+  color: rgba(249, 168, 212, 0.75);
+}
+
+.role-request-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.role-request-approve-button,
+.role-request-deny-button,
+.role-request-revoke-button {
+  border: none;
+  border-radius: 8px;
+  padding: 0.4rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.role-request-approve-button {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+}
+
+.role-request-deny-button,
+.role-request-revoke-button {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.role-request-approve-button:disabled,
+.role-request-deny-button:disabled,
+.role-request-revoke-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.role-request-empty {
+  color: rgba(249, 168, 212, 0.6);
+  font-size: 0.9rem;
+}
+
+/* --- VolunteerShifts.jsx: Request Access button + pending state --- */
+
+.modern-request-access-button {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #1f1013;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modern-request-access-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.modern-request-pending-note {
+  font-size: 0.85rem;
+  color: #fbbf24;
+  font-style: italic;
+}

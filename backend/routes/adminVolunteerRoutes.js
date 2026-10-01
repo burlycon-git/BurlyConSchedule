@@ -7,6 +7,12 @@ const {
   listContactMessages,
   resolveContactMessage
 } = require("../controllers/adminVolunteerController");
+const {
+  listRoleRequestsForRole,
+  listApprovedVolunteersForRole,
+  approveRoleRequest,
+  denyRoleRequest
+} = require("../controllers/roleRequestController");
 const authenticateUser = require("../middleware/authMiddleware");
 
 // Local Lead/Admin gate, same as the one in userRoutes.js (checks
@@ -51,5 +57,14 @@ router.get("/notifications", authenticateUser, requireLeadOrAdmin, listShiftNoti
 // messages. ?status=new to see only what still needs attention.
 router.get("/contact-messages", authenticateUser, requireVolunteerCoordinator, listContactMessages);
 router.patch("/contact-messages/:id/resolve", authenticateUser, requireVolunteerCoordinator, resolveContactMessage);
+
+// Lead/Admin: no extra per-role scoping -- approval rights match who can
+// already view that role's AdminRoleView page today. See the discussion in
+// the conversation history for why ("everyone's Admin anyway" / no real
+// per-role ownership field exists yet).
+router.get("/roles/:roleName/role-requests", authenticateUser, requireLeadOrAdmin, listRoleRequestsForRole);
+router.get("/roles/:roleName/approved-volunteers", authenticateUser, requireLeadOrAdmin, listApprovedVolunteersForRole);
+router.post("/role-requests/:id/approve", authenticateUser, requireLeadOrAdmin, approveRoleRequest);
+router.post("/role-requests/:id/deny", authenticateUser, requireLeadOrAdmin, denyRoleRequest);
 
 module.exports = router;

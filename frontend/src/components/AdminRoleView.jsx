@@ -4,6 +4,7 @@ import Header from "./Header";
 import ShiftForm from "./ShiftForm";
 import { hasRole } from "../utils/authUtils";
 import "../styles/adminRoleView.css";
+import "../styles/roleRequests.css";
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
@@ -26,7 +27,23 @@ export default function AdminRoleView() {
   const [deletingShift, setDeletingShift] = useState(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
+  // Only relevant when roleInfo.restricted is true -- see the two panels
+  // rendered further down and loadRoleRequestData below.
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [approvedVolunteers, setApprovedVolunteers] = useState([]);
+  const [roleRequestsLoading, setRoleRequestsLoading] = useState(false);
+  const [decidingRequestId, setDecidingRequestId] = useState(null);
+  const [revokingUserId, setRevokingUserId] = useState(null);
+
   const isAdminOrLead = hasRole("Admin") || hasRole("Lead");
+
+  // These two endpoints require a Bearer token (authenticateUser +
+  // requireLeadOrAdmin on the backend) -- unlike loadAll's fetches above,
+  // which hit unauthenticated public routes. Don't copy this pattern onto
+  // the other fetches in this file without also checking their routes.
+  const authHeader = () => ({
+    Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+  });
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -74,6 +91,85 @@ export default function AdminRoleView() {
   useEffect(() => {
     loadAll();
   }, [loadAll]);
+
+  // Only fetch once we know whether this role is restricted -- no point
+  // hitting these endpoints (or showing the panels) for an open role.
+  const loadRoleRequestData = useCallback(async () => {
+    if (!roleInfo?.restricted) return;
+    setRoleRequestsLoading(true);
+    try {
+      const [pendingRes, approvedRes] = await Promise.all([
+        fetch(`${API_BASE}/api/admin/roles/${encodeURIComponent(roleName)}/role-requests`, {
+          headers: authHeader(),
+        }),
+        fetch(`${API_BASE}/api/admin/roles/${encodeURIComponent(roleName)}/approved-volunteers`, {
+          headers: authHeader(),
+        }),
+      ]);
+      if (pendingRes.ok) setPendingRequests(await pendingRes.json());
+      if (approvedRes.ok) setApprovedVolunteers(await approvedRes.json());
+    } catch (e) {
+      console.error("Error loading role request data:", e);
+    } finally {
+      setRoleRequestsLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roleName, roleInfo?.restricted]);
+
+  useEffect(() => {
+    loadRoleRequestData();
+  }, [loadRoleRequestData]);
+
+  const handleApproveRequest = async (requestId) => {
+    setDecidingRequestId(requestId);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/role-requests/${requestId}/approve`, {
+        method: "POST",
+        headers: authHeader(),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setPendingRequests((prev) => prev.filter((r) => r._id !== requestId));
+      loadRoleRequestData(); // refresh "Currently Approved" too
+    } catch (e) {
+      alert(`Failed to approve: ${e.message}`);
+    } finally {
+      setDecidingRequestId(null);
+    }
+  };
+
+  const handleDenyRequest = async (requestId) => {
+    setDecidingRequestId(requestId);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/role-requests/${requestId}/deny`, {
+        method: "POST",
+        headers: authHeader(),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setPendingRequests((prev) => prev.filter((r) => r._id !== requestId));
+    } catch (e) {
+      alert(`Failed to deny: ${e.message}`);
+    } finally {
+      setDecidingRequestId(null);
+    }
+  };
+
+  const handleRevokeApproval = async (userId) => {
+    if (!window.confirm("Revoke this volunteer's approval for this role?")) return;
+    setRevokingUserId(userId);
+    try {
+      const res = await fetch(`${API_BASE}/api/users/${userId}/approved-roles`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        body: JSON.stringify({ roleName, approved: false }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setApprovedVolunteers((prev) => prev.filter((v) => v._id !== userId));
+    } catch (e) {
+      alert(`Failed to revoke: ${e.message}`);
+    } finally {
+      setRevokingUserId(null);
+    }
+  };
 
   const formatTime = (timeStr) => {
     const safe = String(timeStr ?? "").trim();
@@ -282,6 +378,94 @@ export default function AdminRoleView() {
                   </div>
                 )}
               </div>
+            )}
+
+            {roleInfo?.restricted && (
+              <>
+                <div className="role-request-panel">
+                  <h3 className="role-request-panel-title">
+                    🔒 Pending Access Requests {pendingRequests.length > 0 && `(${pendingRequests.length})`}
+                  </h3>
+                  {roleRequestsLoading ? (
+                    <p className="role-request-empty">Loading…</p>
+                  ) : pendingRequests.length === 0 ? (
+                    <p className="role-request-empty">No pending requests for this role.</p>
+                  ) : (
+                    <div className="role-request-list">
+                      {pendingRequests.map((reqItem) => {
+                        const volunteer = reqItem.user || {};
+                        const deciding = decidingRequestId === reqItem._id;
+                        return (
+                          <div key={reqItem._id} className="role-request-row">
+                            <div className="role-request-who">
+                              <span className="role-request-name">
+                                {volunteer.preferredName || volunteer.email || "Unknown volunteer"}
+                              </span>
+                              <span className="role-request-contact">
+                                {volunteer.email}{volunteer.phone ? ` · ${formatPhone(volunteer.phone)}` : ""}
+                              </span>
+                            </div>
+                            <div className="role-request-actions">
+                              <button
+                                className="role-request-approve-button"
+                                disabled={deciding}
+                                onClick={() => handleApproveRequest(reqItem._id)}
+                              >
+                                {deciding ? "…" : "Approve"}
+                              </button>
+                              <button
+                                className="role-request-deny-button"
+                                disabled={deciding}
+                                onClick={() => handleDenyRequest(reqItem._id)}
+                              >
+                                {deciding ? "…" : "Deny"}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="role-request-panel">
+                  <h3 className="role-request-panel-title">
+                    ✅ Currently Approved {approvedVolunteers.length > 0 && `(${approvedVolunteers.length})`}
+                  </h3>
+                  {roleRequestsLoading ? (
+                    <p className="role-request-empty">Loading…</p>
+                  ) : approvedVolunteers.length === 0 ? (
+                    <p className="role-request-empty">No one is approved for this role yet.</p>
+                  ) : (
+                    <div className="role-request-list">
+                      {approvedVolunteers.map((volunteer) => {
+                        const revoking = revokingUserId === volunteer._id;
+                        return (
+                          <div key={volunteer._id} className="role-request-row">
+                            <div className="role-request-who">
+                              <span className="role-request-name">
+                                {volunteer.preferredName || volunteer.email}
+                              </span>
+                              <span className="role-request-contact">
+                                {volunteer.email}{volunteer.phone ? ` · ${formatPhone(volunteer.phone)}` : ""}
+                              </span>
+                            </div>
+                            <div className="role-request-actions">
+                              <button
+                                className="role-request-revoke-button"
+                                disabled={revoking}
+                                onClick={() => handleRevokeApproval(volunteer._id)}
+                              >
+                                {revoking ? "…" : "Revoke"}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </>
             )}
 
             <div className="role-view-toolbar">

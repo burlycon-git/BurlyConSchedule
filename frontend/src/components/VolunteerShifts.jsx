@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "../styles/volunteer.css";
+import "../styles/roleRequests.css";
 import Header from "./Header";
 import { getUserId } from "../utils/authUtils";
 
@@ -32,6 +33,20 @@ export default function VolunteerShifts() {
   const [loading, setLoading] = useState(true);
   const [expandedRole, setExpandedRole] = useState(null);
   const [defaultDateChosen, setDefaultDateChosen] = useState(false);
+
+  // Per-role, not per-shift -- restricted roles are approved/requested at
+  // the role level (see ShiftRole.restricted / User.approvedRoles), so one
+  // request covers every shift under that role name.
+  // Values: "needsRequest" | "submitting" | "pending".
+  // NOTE: this is session-only state, discovered by attempting a signup and
+  // getting rejected with approvalRequired -- it does NOT persist across a
+  // page reload. If the volunteer reloads after requesting, they'll see
+  // "Sign Up" again; clicking it just re-triggers the same rejection and
+  // re-shows "Request Access" (submitRoleRequest is idempotent, so no harm
+  // from a duplicate click), it's just a rougher UX than a persistent
+  // indicator would be. Add a GET "my role requests" endpoint later if that
+  // becomes a real problem.
+  const [restrictedRoleStatus, setRestrictedRoleStatus] = useState({});
 
   const dateOptions = [
     { label: "Wed 11/4", value: "2026-11-04", day: "Wednesday" },
@@ -117,7 +132,7 @@ export default function VolunteerShifts() {
     return `${displayHour}:${min.toString().padStart(2, "0")} ${suffix}`;
   };
 
-  const handleSignup = async (shiftId) => {
+  const handleSignup = async (shiftId, role) => {
     if (!userId) return;
     try {
       const res = await fetch(
@@ -128,6 +143,8 @@ export default function VolunteerShifts() {
           body: JSON.stringify({ userId }),
         },
       );
+      const data = await res.json().catch(() => ({}));
+
       if (res.ok) {
         setShifts((prev) =>
           prev.map((shift) =>
@@ -139,9 +156,40 @@ export default function VolunteerShifts() {
               : shift,
           ),
         );
+      } else if (data.approvalRequired) {
+        // Swap this entire role (not just this shift) over to the
+        // Request Access flow -- restricted is role-level.
+        setRestrictedRoleStatus((prev) => ({ ...prev, [role]: "needsRequest" }));
       }
+      // Other rejection reasons (shift just filled, already signed up) fall
+      // through silently, same as before this change -- not altering that
+      // existing behavior here.
     } catch (err) {
       console.error("Signup error:", err);
+    }
+  };
+
+  const handleRequestAccess = async (role) => {
+    if (!userId) return;
+    setRestrictedRoleStatus((prev) => ({ ...prev, [role]: "submitting" }));
+    try {
+      const res = await fetch(
+        `${process.env.REACT_APP_API_BASE}/api/volunteer/role-requests`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, role }),
+        },
+      );
+      if (res.ok) {
+        setRestrictedRoleStatus((prev) => ({ ...prev, [role]: "pending" }));
+      } else {
+        setRestrictedRoleStatus((prev) => ({ ...prev, [role]: "needsRequest" }));
+        alert("Couldn't submit your request. Please try again.");
+      }
+    } catch (err) {
+      console.error("Request access error:", err);
+      setRestrictedRoleStatus((prev) => ({ ...prev, [role]: "needsRequest" }));
     }
   };
 
@@ -199,7 +247,12 @@ export default function VolunteerShifts() {
     return { role, roleShifts, totalSignups, totalOpen };
   });
 
-  // Hide roles where every shift is full (no open spots anywhere)
+  // Hide roles where every shift is full (no open spots anywhere). Note:
+  // this is capacity-based, not approval-based -- a restricted role with
+  // open capacity still shows up here even for a volunteer who isn't
+  // approved yet. They just get Request Access instead of Sign Up once they
+  // try. That's intentional: hiding the role entirely would mean nobody
+  // ever discovers it exists to request access to.
   const visibleRoles = roleStats.filter((r) => r.totalOpen > 0);
 
   // Sort:
@@ -342,7 +395,12 @@ export default function VolunteerShifts() {
                       onClick={() => toggleRoleExpansion(role)}
                     >
                       <div className="modern-role-info">
-                        <h3 className="modern-role-title">{role}</h3>
+                        <h3 className="modern-role-title">
+                          {role}
+                          {roleInfo.restricted && (
+                            <span title="Requires approval" style={{ marginLeft: 6 }}>🔒</span>
+                          )}
+                        </h3>
                         <p className="modern-role-count">
                           {totalOpen} spot{totalOpen !== 1 ? "s" : ""} open
                           {isUntouched && " • no signups yet"}
@@ -445,6 +503,8 @@ export default function VolunteerShifts() {
 
                             if (isFull && !isSignedUp) return null;
 
+                            const requestStatus = restrictedRoleStatus[role];
+
                             return (
                               <div key={shift._id} className="modern-shift-item">
                                 <div className="modern-shift-time">
@@ -472,10 +532,25 @@ export default function VolunteerShifts() {
                                       <span className="modern-button-icon">❌</span>
                                       <span className="modern-button-text">Cancel</span>
                                     </button>
+                                  ) : requestStatus === "pending" ? (
+                                    <span className="modern-request-pending-note">
+                                      ⏳ Request pending
+                                    </span>
+                                  ) : requestStatus === "needsRequest" || requestStatus === "submitting" ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRequestAccess(role)}
+                                      className="modern-request-access-button"
+                                      disabled={requestStatus === "submitting"}
+                                    >
+                                      {requestStatus === "submitting"
+                                        ? "Requesting…"
+                                        : "🔒 Request Access"}
+                                    </button>
                                   ) : (
                                     <button
                                       type="button"
-                                      onClick={() => handleSignup(shift._id)}
+                                      onClick={() => handleSignup(shift._id, role)}
                                       className="modern-signup-button"
                                     >
                                       <span className="modern-button-icon">✨</span>
