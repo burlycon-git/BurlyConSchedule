@@ -21,6 +21,7 @@
     "mongoose": "^8.10.1",
     "node-cron": "^4.2.1",
     "node-fetch": "^2.7.0",
+    "resend": "^6.4.2",
     "twilio": "^5.8.0"
   },
   "devDependencies": {

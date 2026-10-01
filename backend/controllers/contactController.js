@@ -1,6 +1,6 @@
 const ContactMessage = require("../models/ContactMessage");
 const User = require("../models/User");
-const smsService = require("../utils/smsService");
+const emailService = require("../utils/emailService");
 
 // POST a message from the in-app "Contact Volunteer Coordinator" button.
 // This exists specifically so volunteers never see the coordinator's
@@ -27,9 +27,9 @@ const submitContactMessage = async (req, res) => {
     let alerted = false;
     let alertError = null;
 
-    const coordinatorPhone = process.env.COORDINATOR_PHONE;
-    if (coordinatorPhone) {
-      const smsResult = await smsService.sendCoordinatorAlert(coordinatorPhone, {
+    const coordinatorEmail = process.env.COORDINATOR_EMAIL;
+    if (coordinatorEmail) {
+      const emailResult = await emailService.sendCoordinatorAlert(coordinatorEmail, {
         volunteerName: user.preferredName || user.email,
         message: contactMessage.message
         // shiftContext intentionally omitted here -- we'd need to look up
@@ -37,10 +37,10 @@ const submitContactMessage = async (req, res) => {
         // message + relatedShift id are already in the admin log. Add a
         // lookup here if you want the shift spelled out in the text itself.
       });
-      alerted = smsResult.success;
-      if (!smsResult.success) alertError = smsResult.error;
+      alerted = emailResult.success;
+      if (!emailResult.success) alertError = emailResult.error;
     } else {
-      alertError = "COORDINATOR_PHONE is not set -- message was logged but no SMS alert was sent";
+      alertError = "COORDINATOR_EMAIL is not set -- message was logged but no email alert was sent";
     }
 
     res.status(201).json({ ok: true, contactMessage, alerted, alertError });

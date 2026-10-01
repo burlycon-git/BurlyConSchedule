@@ -1,8 +1,7 @@
 const RoleRequest = require("../models/RoleRequest");
 const ShiftRole = require("../models/ShiftRole");
 const User = require("../models/User");
-const fusionAuthService = require("../utils/fusionAuthService");
-const smsService = require("../utils/smsService");
+const emailService = require("../utils/emailService");
 
 // POST volunteer-facing: request access to a restricted role.
 // Body: { userId: <fusionAuthId>, role: <ShiftRole.name> }
@@ -77,8 +76,8 @@ const listApprovedVolunteersForRole = async (req, res) => {
 // can report it without duplicating this logic twice.
 async function notifyRoleRequestDecision(user, role, approved) {
   const message = approved
-    ? smsService.createRoleRequestApprovedMessage({ role })
-    : smsService.createRoleRequestDeniedMessage({ role });
+    ? emailService.createRoleRequestApprovedMessage({ role })
+    : emailService.createRoleRequestDeniedMessage({ role });
 
   await User.findByIdAndUpdate(user._id, {
     $push: {
@@ -90,24 +89,20 @@ async function notifyRoleRequestDecision(user, role, approved) {
   });
 
   if (user.notificationPrefs?.shiftChanges === "none") {
-    return { notifiedBySms: false, notifyError: null };
+    return { notifiedByEmail: false, notifyError: null };
   }
 
-  const phoneResult = await fusionAuthService.getUserPhone(user.fusionAuthId);
-  if (!phoneResult.success) {
-    return {
-      notifiedBySms: false,
-      notifyError: `SMS not sent: ${phoneResult.error || "no phone on file"}`
-    };
+  if (!user.email) {
+    return { notifiedByEmail: false, notifyError: "No email on file -- in-app notice still sent" };
   }
 
-  const smsResult = approved
-    ? await smsService.sendRoleRequestApprovedNotice(phoneResult.phone, { role })
-    : await smsService.sendRoleRequestDeniedNotice(phoneResult.phone, { role });
+  const emailResult = approved
+    ? await emailService.sendRoleRequestApprovedNotice(user.email, { role })
+    : await emailService.sendRoleRequestDeniedNotice(user.email, { role });
 
   return {
-    notifiedBySms: smsResult.success,
-    notifyError: smsResult.success ? null : smsResult.error
+    notifiedByEmail: emailResult.success,
+    notifyError: emailResult.success ? null : emailResult.error
   };
 }
 

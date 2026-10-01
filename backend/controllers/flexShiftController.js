@@ -2,8 +2,7 @@ const FlexibleShift = require("../models/FlexibleShift");
 const User = require("../models/User");
 const ShiftRole = require("../models/ShiftRole");
 const { getActiveEvent } = require("../utils/getActiveEvent");
-const fusionAuthService = require("../utils/fusionAuthService");
-const smsService = require("../utils/smsService");
+const emailService = require("../utils/emailService");
 
 // GET users shifts
 const getUserFlexShifts = async (req, res) => {
@@ -271,10 +270,10 @@ const removeVolunteerFromShift = async (req, res) => {
     });
 
     // In-app notice is written unconditionally -- this is the channel of
-    // record (see User.notifications), so it doesn't depend on SMS working,
-    // on notificationPrefs, or on a phone number being on file. SMS below is
-    // a best-effort bonus on top of it, not the only copy that exists.
-    const inAppMessage = smsService.createRemovalMessage({
+    // record (see User.notifications), so it doesn't depend on email working,
+    // on notificationPrefs, or on an email being on file. Email below is a
+    // best-effort bonus on top of it, not the only copy that exists.
+    const inAppMessage = emailService.createRemovalMessage({
       role: shift.role,
       date: shift.date,
       startTime: shift.startTime,
@@ -295,29 +294,24 @@ const removeVolunteerFromShift = async (req, res) => {
     let notifyError = null;
 
     if (user.notificationPrefs?.shiftChanges !== "none") {
-      const phoneResult = await fusionAuthService.getUserPhone(user.fusionAuthId);
-      if (phoneResult.success) {
-        const smsResult = await smsService.sendRemovalNotice(phoneResult.phone, {
+      if (user.email) {
+        const emailResult = await emailService.sendRemovalNotice(user.email, {
           role: shift.role,
           date: shift.date,
           startTime: shift.startTime,
           reason: reason || null
         });
-        notified = smsResult.success;
-        if (!smsResult.success) notifyError = smsResult.error;
+        notified = emailResult.success;
+        if (!emailResult.success) notifyError = emailResult.error;
       } else {
-        // Twilio trial accounts can only text numbers you've manually
-        // verified (up to 5), so this will fail for most volunteers until
-        // the account is upgraded -- that's expected right now, not a bug.
-        // The in-app notice above still reached them regardless.
-        notifyError = `SMS not sent (prefs: ${user.notificationPrefs?.shiftChanges}): ${phoneResult.error || "no phone on file"}`;
+        notifyError = "No email on file -- in-app notice still sent";
       }
     }
 
     res.json({
       message: "Volunteer removed from shift",
       notifiedInApp: true,
-      notifiedBySms: notified,
+      notifiedByEmail: notified,
       notifyError
     });
   } catch (err) {
@@ -375,9 +369,9 @@ const reassignShiftVolunteers = async (req, res) => {
       );
 
       // Same as removeVolunteerFromShift: the in-app notice is written
-      // unconditionally and is the channel of record, independent of SMS
+      // unconditionally and is the channel of record, independent of email
       // outcome or notificationPrefs.
-      const inAppMessage = smsService.createShiftChangeMessage({
+      const inAppMessage = emailService.createShiftChangeMessage({
         oldRole: sourceShift.role,
         newRole: targetShift.role,
         newDate: targetShift.date,
@@ -398,24 +392,21 @@ const reassignShiftVolunteers = async (req, res) => {
       let notifyError = null;
 
       if (user.notificationPrefs?.shiftChanges !== "none") {
-        const phoneResult = await fusionAuthService.getUserPhone(user.fusionAuthId);
-        if (phoneResult.success) {
-          const smsResult = await smsService.sendShiftChangeNotice(phoneResult.phone, {
+        if (user.email) {
+          const emailResult = await emailService.sendShiftChangeNotice(user.email, {
             oldRole: sourceShift.role,
             newRole: targetShift.role,
             newDate: targetShift.date,
             newStartTime: targetShift.startTime
           });
-          notified = smsResult.success;
-          if (!smsResult.success) notifyError = smsResult.error;
+          notified = emailResult.success;
+          if (!emailResult.success) notifyError = emailResult.error;
         } else {
-          // Expected on a Twilio trial account for anyone outside your 5
-          // verified numbers -- see note in removeVolunteerFromShift.
-          notifyError = `SMS not sent (prefs: ${user.notificationPrefs?.shiftChanges}): ${phoneResult.error || "no phone on file"}`;
+          notifyError = "No email on file -- in-app notice still sent";
         }
       }
 
-      moved.push({ volunteerId, notifiedInApp: true, notifiedBySms: notified, notifyError });
+      moved.push({ volunteerId, notifiedInApp: true, notifiedByEmail: notified, notifyError });
     }
 
     await targetShift.save();
