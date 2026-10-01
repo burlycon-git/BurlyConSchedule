@@ -40,7 +40,20 @@ export default function Header() {
   const initial = (displayName || "U").charAt(0).toUpperCase();
 
   // Role
-  const roleLabel = hasRole("Admin") ? "Admin" : hasRole("Lead") ? "Lead" : "Volunteer";
+  const isAdmin = hasRole("Admin");
+  const isLead = hasRole("Lead");
+  const isVolunteerCoordinator = hasRole("VolunteerCoordinator");
+  const roleLabel = isAdmin
+    ? "Admin"
+    : isVolunteerCoordinator
+      ? "Volunteer Coordinator"
+      : isLead
+        ? "Lead"
+        : "Volunteer";
+
+  // VolunteerCoordinator ONLY -- see AdminContactMessages.jsx for why Admin
+  // isn't included here too.
+  const canSeeMessages = isVolunteerCoordinator;
 
   const selfServiceUrl = `${domain}/account/?client_id=${clientId}`;
 
@@ -86,10 +99,17 @@ export default function Header() {
               <span className="modern-nav-text">My Profile</span>
             </Link>
 
-            {(hasRole("Admin") || hasRole("Lead")) && (
+            {(isAdmin || isLead) && (
               <Link to="/admin" className="modern-nav-link admin">
                 <span className="modern-nav-text">Admin</span>
                 <span className="modern-admin-badge">Admin</span>
+              </Link>
+            )}
+
+            {canSeeMessages && (
+              <Link to="/vc" className="modern-nav-link admin">
+                <span className="modern-nav-text">Coordinator</span>
+                <span className="modern-admin-badge">VC</span>
               </Link>
             )}
           </div>
@@ -193,7 +213,7 @@ export default function Header() {
               <span className="modern-nav-text">My Profile</span>
             </Link>
 
-            {(hasRole("Admin") || hasRole("Lead")) && (
+            {(isAdmin || isLead) && (
               <Link
                 to="/admin"
                 className="modern-mobile-nav-link admin"
@@ -201,6 +221,17 @@ export default function Header() {
               >
                 <span className="modern-nav-text">Admin</span>
                 <span className="modern-mobile-admin-badge">Admin</span>
+              </Link>
+            )}
+
+            {canSeeMessages && (
+              <Link
+                to="/vc"
+                className="modern-mobile-nav-link admin"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <span className="modern-nav-text">Coordinator</span>
+                <span className="modern-mobile-admin-badge">VC</span>
               </Link>
             )}
           </div>

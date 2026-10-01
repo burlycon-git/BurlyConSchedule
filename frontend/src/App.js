@@ -15,6 +15,8 @@ import AdminEvents from "./components/AdminEvents";
 import AdminLanding from "./components/AdminLanding";
 import AdminRoleView from "./components/AdminRoleView";
 import AdminAllTimeline from "./components/AdminAllTimeline";
+import AdminContactMessages from "./components/AdminContactMessages";
+import VolunteerCoordinatorLanding from "./components/VolunteerCoordinatorLanding";
 
 function App() {
   return (
@@ -94,6 +96,22 @@ function App() {
         }
       />
       <Route path="/admin/all-timeline" element={<PrivateRoute><AdminAllTimeline /></PrivateRoute>} />
+      <Route
+        path="/admin/messages"
+        element={
+          <PrivateRoute>
+            <AdminContactMessages />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/vc"
+        element={
+          <PrivateRoute>
+            <VolunteerCoordinatorLanding />
+          </PrivateRoute>
+        }
+      />
       {/* <Route path="/callback" element={<Callback />} /> */}
       <Route path="/oauth-callback" element={<OAuthCallback />} />
     </Routes>
