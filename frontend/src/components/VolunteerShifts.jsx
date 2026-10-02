@@ -25,6 +25,33 @@ function getDaypart(startTime) {
 
 const DAYPART_ORDER = ["Morning", "Afternoon", "Evening", "Other"];
 
+// volunteersRegistered entries come back from the backend as populated user
+// objects (preferredName/email/phone/fusionAuthId/approvedRoles -- see
+// flexShiftController's getAllFlexShifts/getShiftsByDate), not plain
+// fusionAuthId strings, except for the raw userId string this component
+// optimistically pushes into local state right after a successful signup
+// (see handleSignup) before the next full refetch replaces it with the
+// real populated object. This handles both shapes.
+function matchesUser(entry, userId) {
+  if (!entry) return false;
+  return (typeof entry === "object" ? entry.fusionAuthId : entry) === userId;
+}
+
+// True once signed up on a restricted role until approvedRoles actually
+// includes it -- covers a signup from seconds ago (selfEntry is just the
+// raw userId string pushed optimistically, so approvedRoles is undefined
+// -> not approved) and one from before this page load alike (selfEntry is
+// the real populated user with real approvedRoles). Shared by the top
+// summary banner and each shift row so they can't drift out of sync.
+function isPendingApproval(shift, selfEntry, restricted) {
+  if (!selfEntry || !restricted) return false;
+  return !(
+    typeof selfEntry === "object" &&
+    Array.isArray(selfEntry.approvedRoles) &&
+    selfEntry.approvedRoles.includes(shift.role)
+  );
+}
+
 export default function VolunteerShifts() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [shifts, setShifts] = useState([]);
@@ -34,19 +61,6 @@ export default function VolunteerShifts() {
   const [expandedRole, setExpandedRole] = useState(null);
   const [defaultDateChosen, setDefaultDateChosen] = useState(false);
 
-  // Per-role, not per-shift -- restricted roles are approved/requested at
-  // the role level (see ShiftRole.restricted / User.approvedRoles), so one
-  // request covers every shift under that role name.
-  // Values: "needsRequest" | "submitting" | "pending".
-  // NOTE: this is session-only state, discovered by attempting a signup and
-  // getting rejected with approvalRequired -- it does NOT persist across a
-  // page reload. If the volunteer reloads after requesting, they'll see
-  // "Sign Up" again; clicking it just re-triggers the same rejection and
-  // re-shows "Request Access" (submitRoleRequest is idempotent, so no harm
-  // from a duplicate click), it's just a rougher UX than a persistent
-  // indicator would be. Add a GET "my role requests" endpoint later if that
-  // becomes a real problem.
-  const [restrictedRoleStatus, setRestrictedRoleStatus] = useState({});
 
   const dateOptions = [
     { label: "Wed 11/4", value: "2026-11-04", day: "Wednesday" },
@@ -132,6 +146,14 @@ export default function VolunteerShifts() {
     return `${displayHour}:${min.toString().padStart(2, "0")} ${suffix}`;
   };
 
+  // One click covers both "sign up" and, for a restricted role, "request
+  // access" -- the backend now reserves the spot AND files a RoleRequest in
+  // the same call (see signUpForFlexShift) instead of rejecting the signup
+  // and making the volunteer click a second "Request Access" button.
+  // Whether this role still needs approval is derived live from the
+  // shift's own populated volunteersRegistered data (see matchesUser /
+  // the render below) rather than tracked here -- that way it's correct
+  // on page reload too, not just for the rest of this session.
   const handleSignup = async (shiftId, role) => {
     if (!userId) return;
     try {
@@ -143,7 +165,6 @@ export default function VolunteerShifts() {
           body: JSON.stringify({ userId }),
         },
       );
-      const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
         setShifts((prev) =>
@@ -156,40 +177,12 @@ export default function VolunteerShifts() {
               : shift,
           ),
         );
-      } else if (data.approvalRequired) {
-        // Swap this entire role (not just this shift) over to the
-        // Request Access flow -- restricted is role-level.
-        setRestrictedRoleStatus((prev) => ({ ...prev, [role]: "needsRequest" }));
       }
       // Other rejection reasons (shift just filled, already signed up) fall
       // through silently, same as before this change -- not altering that
       // existing behavior here.
     } catch (err) {
       console.error("Signup error:", err);
-    }
-  };
-
-  const handleRequestAccess = async (role) => {
-    if (!userId) return;
-    setRestrictedRoleStatus((prev) => ({ ...prev, [role]: "submitting" }));
-    try {
-      const res = await fetch(
-        `${process.env.REACT_APP_API_BASE}/api/volunteer/role-requests`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, role }),
-        },
-      );
-      if (res.ok) {
-        setRestrictedRoleStatus((prev) => ({ ...prev, [role]: "pending" }));
-      } else {
-        setRestrictedRoleStatus((prev) => ({ ...prev, [role]: "needsRequest" }));
-        alert("Couldn't submit your request. Please try again.");
-      }
-    } catch (err) {
-      console.error("Request access error:", err);
-      setRestrictedRoleStatus((prev) => ({ ...prev, [role]: "needsRequest" }));
     }
   };
 
@@ -211,7 +204,7 @@ export default function VolunteerShifts() {
               ? {
                   ...shift,
                   volunteersRegistered: shift.volunteersRegistered.filter(
-                    (id) => id !== userId,
+                    (entry) => !matchesUser(entry, userId),
                   ),
                 }
               : shift,
@@ -270,9 +263,21 @@ export default function VolunteerShifts() {
   const selectedDateOption = dateOptions.find(
     (option) => option.value === selectedDate,
   );
-  const totalSignedUp = shifts.filter((shift) =>
-    shift.volunteersRegistered.includes(userId),
-  ).length;
+  // Split into "really signed up" vs. "reserved but still needs approval"
+  // so the banner below the schedule image can say "requested" instead of
+  // "signed up" when that's what's actually true -- see isPendingApproval.
+  let totalSignedUp = 0;
+  let totalPendingApproval = 0;
+  shifts.forEach((shift) => {
+    const selfEntry = shift.volunteersRegistered.find((entry) =>
+      matchesUser(entry, userId),
+    );
+    if (!selfEntry) return;
+    totalSignedUp += 1;
+    if (isPendingApproval(shift, selfEntry, roleDetails[shift.role]?.restricted)) {
+      totalPendingApproval += 1;
+    }
+  });
 
   return (
     <div className="modern-page-container">
@@ -287,12 +292,6 @@ export default function VolunteerShifts() {
             Help make BurlyCon magical! Select your preferred shifts and join
             the Sparkle Squad.
           </p>
-          {totalSignedUp > 0 && (
-            <div className="modern-signup-summary">
-              🎭 You're signed up for {totalSignedUp} shift
-              {totalSignedUp !== 1 ? "s" : ""} on {selectedDateOption?.day}
-            </div>
-          )}
         </div>
       </div>
 
@@ -340,6 +339,33 @@ export default function VolunteerShifts() {
       </div>
     </a>
   </div>
+
+  {totalSignedUp > 0 && (
+    <div
+      className={`modern-signup-summary ${
+        totalPendingApproval === totalSignedUp ? "pending-approval" : ""
+      }`}
+    >
+      {totalPendingApproval === totalSignedUp ? (
+        <>
+          🎭 You've requested {totalSignedUp} shift
+          {totalSignedUp !== 1 ? "s" : ""} on {selectedDateOption?.day} —
+          pending approval
+        </>
+      ) : totalPendingApproval > 0 ? (
+        <>
+          🎭 You're signed up for {totalSignedUp} shift
+          {totalSignedUp !== 1 ? "s" : ""} on {selectedDateOption?.day} (
+          {totalPendingApproval} pending approval)
+        </>
+      ) : (
+        <>
+          🎭 You're signed up for {totalSignedUp} shift
+          {totalSignedUp !== 1 ? "s" : ""} on {selectedDateOption?.day}
+        </>
+      )}
+    </div>
+  )}
 </div>
 
         <div className="modern-shifts-section">
@@ -494,8 +520,10 @@ export default function VolunteerShifts() {
                         <div key={daypart} className="modern-daypart-group">
                           <div className="modern-daypart-label">{daypart}</div>
                           {byDaypart[daypart].map((shift) => {
-                            const isSignedUp =
-                              shift.volunteersRegistered.includes(userId);
+                            const selfEntry = shift.volunteersRegistered.find(
+                              (entry) => matchesUser(entry, userId),
+                            );
+                            const isSignedUp = !!selfEntry;
                             const available =
                               shift.volunteersNeeded -
                               shift.volunteersRegistered.length;
@@ -503,7 +531,11 @@ export default function VolunteerShifts() {
 
                             if (isFull && !isSignedUp) return null;
 
-                            const requestStatus = restrictedRoleStatus[role];
+                            const pendingApproval = isPendingApproval(
+                              shift,
+                              selfEntry,
+                              roleInfo.restricted,
+                            );
 
                             return (
                               <div key={shift._id} className="modern-shift-item">
@@ -524,29 +556,24 @@ export default function VolunteerShifts() {
                                       </span>
                                     </div>
                                   ) : isSignedUp ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleCancel(shift._id)}
-                                      className="modern-cancel-button"
-                                    >
-                                      <span className="modern-button-icon">❌</span>
-                                      <span className="modern-button-text">Cancel</span>
-                                    </button>
-                                  ) : requestStatus === "pending" ? (
-                                    <span className="modern-request-pending-note">
-                                      ⏳ Request pending
-                                    </span>
-                                  ) : requestStatus === "needsRequest" || requestStatus === "submitting" ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRequestAccess(role)}
-                                      className="modern-request-access-button"
-                                      disabled={requestStatus === "submitting"}
-                                    >
-                                      {requestStatus === "submitting"
-                                        ? "Requesting…"
-                                        : "🔒 Request Access"}
-                                    </button>
+                                    <div className="modern-signedup-block">
+                                      {pendingApproval && (
+                                        <span
+                                          className="modern-request-pending-note"
+                                          title="Your spot is reserved, but this role needs admin approval before it counts toward your discount hours."
+                                        >
+                                          ⏳ Pending approval
+                                        </span>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCancel(shift._id)}
+                                        className="modern-cancel-button"
+                                      >
+                                        <span className="modern-button-icon">❌</span>
+                                        <span className="modern-button-text">Cancel</span>
+                                      </button>
+                                    </div>
                                   ) : (
                                     <button
                                       type="button"

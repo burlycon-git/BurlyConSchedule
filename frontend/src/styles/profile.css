@@ -1,19 +1,28 @@
 /* Light defaults; dark mode overrides at the bottom */
 
-.modern-page-container {
+/* Scoped to this page only -- .profile-page-container (and several other
+   .profile-* class names below) used to be shared across many pages' CSS
+   files with no scoping, so whichever stylesheet happened to load last in
+   the session won the background/text color here regardless of what this
+   page intended. Renamed + given its own hardcoded background so this
+   page always renders the same way no matter what else was visited first
+   in the same session. Same fix already applied to AdminRoleView for the
+   identical bug -- see the comment there. */
+.profile-page-container {
   min-height: 100vh;
+  background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #ffffff 100%);
   color: #4b1d3f;
 }
 
 /* Profile Hero Section */
-.modern-profile-hero {
+.profile-hero {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(236, 72, 153, 0.2);
   padding: 3rem 1.5rem;
 }
 
-.modern-profile-hero-content {
+.profile-hero-content {
   max-width: 1400px;
   margin: 0 auto;
   display: flex;
@@ -21,7 +30,7 @@
   gap: 2rem;
 }
 
-.modern-profile-avatar {
+.profile-avatar {
   width: 96px;
   height: 96px;
   border-radius: 50%;
@@ -36,9 +45,9 @@
   box-shadow: 0 8px 24px rgba(236, 72, 153, 0.4);
 }
 
-.modern-profile-info { flex: 1; }
+.profile-info { flex: 1; }
 
-.modern-profile-title {
+.profile-title {
   font-size: 2.5rem;
   font-weight: 700;
   background: linear-gradient(135deg, #ec4899, #f9a8d4);
@@ -49,31 +58,31 @@
   line-height: 1.2;
 }
 
-.modern-profile-subtitle {
+.profile-subtitle {
   color: #6b2d5c;
   font-size: 1.125rem;
   margin: 0;
 }
 
 /* Content Wrapper */
-.modern-content-wrapper {
+.profile-content-wrapper {
   max-width: 1400px;
   margin: 0 auto;
   padding: 2.5rem 1.5rem;
 }
 
 /* Stats Section */
-.modern-stats-section {
+.profile-stats-section {
   margin-bottom: 3rem;
 }
 
-.modern-stats-grid {
+.profile-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
 }
 
-.modern-stat-card {
+.profile-stat-card {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
   border-radius: 1.25rem;
@@ -88,7 +97,7 @@
   gap: 1.5rem;
 }
 
-.modern-stat-card::before {
+.profile-stat-card::before {
   content: '';
   position: absolute;
   top: 0;
@@ -97,26 +106,26 @@
   height: 4px;
 }
 
-.modern-stat-card.hours::before { background: linear-gradient(90deg, #a78bfa, #c4b5fd); }
-.modern-stat-card.shifts::before { background: linear-gradient(90deg, #60a5fa, #93c5fd); }
-.modern-stat-card.status::before { background: linear-gradient(90deg, #fbbf24, #fcd34d); }
+.profile-stat-card.hours::before { background: linear-gradient(90deg, #a78bfa, #c4b5fd); }
+.profile-stat-card.shifts::before { background: linear-gradient(90deg, #60a5fa, #93c5fd); }
+.profile-stat-card.status::before { background: linear-gradient(90deg, #fbbf24, #fcd34d); }
 
-.modern-stat-card:hover {
+.profile-stat-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 24px rgba(124, 58, 237, 0.15);
 }
 
-.modern-stat-icon {
+.profile-stat-icon {
   font-size: 3rem;
   opacity: 0.9;
 }
 
-.modern-stat-content {
+.profile-stat-content {
   flex: 1;
   min-width: 0;
 }
 
-.modern-stat-number {
+.profile-stat-number {
   font-size: 2.5rem;
   font-weight: 700;
   color: #be185d;
@@ -124,7 +133,7 @@
   line-height: 1;
 }
 
-.modern-stat-code {
+.profile-stat-code {
   font-size: 1.4rem;
   font-weight: 700;
   color: #be185d;
@@ -136,7 +145,7 @@
   word-break: break-all;
 }
 
-.modern-stat-label {
+.profile-stat-label {
   font-size: 0.875rem;
   font-weight: 600;
   color: #4b1d3f;
@@ -145,39 +154,54 @@
   margin-top: 0.5rem;
 }
 
-.modern-stat-note {
+.profile-stat-note {
   font-size: 0.825rem;
   margin-top: 0.5rem;
   line-height: 1.4;
 }
 
-.modern-stat-note.success { color: #047857; }
-.modern-stat-note.warning { color: #b45309; }
-.modern-stat-note.muted { color: #6b2d5c; }
+.profile-stat-note.success { color: #047857; }
+.profile-stat-note.warning { color: #b45309; }
+.profile-stat-note.muted { color: #6b2d5c; }
+
+/* Hours parked on a restricted role, pending approval -- excluded from
+   totalHours (and therefore the discount thresholds above) until the
+   volunteer is approved for that role. See flexShiftController's
+   getUserFlexShifts for where pendingApprovalHours comes from. */
+.profile-pending-approval-note {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  border-radius: 0.75rem;
+  color: #92400e;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
 
 /* Shifts Section */
-.modern-shifts-section { margin-bottom: 2rem; }
+.profile-shifts-section { margin-bottom: 2rem; }
 
-.modern-section-header {
+.profile-section-header {
   margin-bottom: 2rem;
   text-align: center;
 }
 
-.modern-section-title {
+.profile-section-title {
   font-size: 1.875rem;
   font-weight: 600;
   color: #be185d;
   margin: 0 0 0.5rem 0;
 }
 
-.modern-section-description {
+.profile-section-description {
   color: #6b2d5c;
   font-size: 1rem;
   margin: 0;
 }
 
 /* Loading State */
-.modern-loading-state {
+.profile-loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -186,7 +210,7 @@
   text-align: center;
 }
 
-.modern-loading-spinner {
+.profile-loading-spinner {
   width: 3rem;
   height: 3rem;
   border: 3px solid rgba(236, 72, 153, 0.2);
@@ -197,38 +221,38 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.modern-loading-state p {
+.profile-loading-state p {
   color: #4b1d3f;
   font-size: 1.125rem;
 }
 
 /* Empty State */
-.modern-empty-state {
+.profile-empty-state {
   text-align: center;
   padding: 4rem 2rem;
 }
 
-.modern-empty-icon {
+.profile-empty-icon {
   font-size: 5rem;
   margin-bottom: 1rem;
   opacity: 0.5;
 }
 
-.modern-empty-title {
+.profile-empty-title {
   font-size: 1.375rem;
   font-weight: 600;
   color: #be185d;
   margin-bottom: 0.75rem;
 }
 
-.modern-empty-description {
+.profile-empty-description {
   color: #4b1d3f;
   margin-bottom: 2rem;
   font-size: 1rem;
   line-height: 1.6;
 }
 
-.modern-empty-action {
+.profile-empty-action {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -243,16 +267,16 @@
   cursor: pointer;
 }
 
-.modern-empty-action:hover {
+.profile-empty-action:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 16px rgba(236, 72, 153, 0.3);
 }
 
-.modern-button-icon { font-size: 1.125rem; }
+.profile-button-icon { font-size: 1.125rem; }
 
 /* --- Day-grouped schedule --- */
 
-.modern-day-list {
+.profile-day-list {
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
@@ -260,7 +284,7 @@
   margin: 0 auto;
 }
 
-.modern-day-group {
+.profile-day-group {
   background: rgba(255, 255, 255, 0.85);
   border-radius: 1.25rem;
   border: 1px solid rgba(236, 72, 153, 0.2);
@@ -268,7 +292,7 @@
   overflow: hidden;
 }
 
-.modern-day-header {
+.profile-day-header {
   font-size: 1rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -278,13 +302,13 @@
   padding: 0.75rem 1.25rem;
 }
 
-.modern-day-shifts {
+.profile-day-shifts {
   padding: 1rem 1.25rem;
   display: flex;
   flex-direction: column;
 }
 
-.modern-day-shift {
+.profile-day-shift {
   position: relative;
   background: rgba(236, 72, 153, 0.06);
   border-left: 4px solid #ec4899;
@@ -294,17 +318,17 @@
   padding-right: 3rem;
 }
 
-.modern-day-shift:last-child { margin-bottom: 0; }
+.profile-day-shift:last-child { margin-bottom: 0; }
 
 /* Visually link consecutive same-role shifts */
-.modern-day-shift.continues-to {
+.profile-day-shift.continues-to {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   margin-bottom: 0;
   padding-bottom: 0.5rem;
 }
 
-.modern-day-shift.continues-from {
+.profile-day-shift.continues-from {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   padding-top: 0.5rem;
@@ -312,32 +336,58 @@
   border-top: 1px dashed rgba(236, 72, 153, 0.45);
 }
 
-.modern-day-shift-main {
+.profile-day-shift-main {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
-.modern-day-shift-role {
+.profile-day-shift-role {
   font-weight: 600;
   color: #be185d;
   font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.modern-day-shift-continues {
+/* A shift on a restricted role the volunteer isn't approved for yet --
+   their spot is still reserved (see signUpForFlexShift), this just flags
+   that the hours aren't counting toward the discount yet (see
+   .profile-pending-approval-note above for the overall hours callout). */
+.profile-day-shift-pending {
+  border-left-color: #d97706 !important;
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.profile-day-shift-unapproved-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #92400e;
+  background: rgba(251, 191, 36, 0.18);
+  border: 1px solid rgba(217, 119, 6, 0.4);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+}
+
+.profile-day-shift-continues {
   font-size: 0.8rem;
   font-style: italic;
   color: #6b2d5c;
   font-weight: 400;
 }
 
-.modern-day-shift-time {
+.profile-day-shift-time {
   font-size: 0.95rem;
   color: #4b1d3f;
   font-weight: 500;
 }
 
-.modern-day-shift-details {
+.profile-day-shift-details {
   margin-top: 0.6rem;
   padding-top: 0.6rem;
   border-top: 1px solid rgba(236, 72, 153, 0.15);
@@ -346,7 +396,7 @@
   gap: 0.3rem;
 }
 
-.modern-detail-item {
+.profile-detail-item {
   display: flex;
   align-items: center;
   gap: 0.45rem;
@@ -354,28 +404,28 @@
   color: #4b1d3f;
 }
 
-.modern-detail-icon { font-size: 0.95rem; flex-shrink: 0; }
+.profile-detail-icon { font-size: 0.95rem; flex-shrink: 0; }
 
-.modern-detail-label {
+.profile-detail-label {
   color: #6b2d5c;
   font-weight: 500;
 }
 
-.modern-detail-text { color: #4b1d3f; }
+.profile-detail-text { color: #4b1d3f; }
 
-.modern-detail-link {
+.profile-detail-link {
   color: #be185d;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s;
 }
 
-.modern-detail-link:hover {
+.profile-detail-link:hover {
   color: #ec4899;
   text-decoration: underline;
 }
 
-.modern-day-shift .modern-cancel-button {
+.profile-day-shift .profile-cancel-button {
   position: absolute;
   top: 0.65rem;
   right: 0.65rem;
@@ -394,83 +444,21 @@
   height: 36px;
 }
 
-.modern-day-shift .modern-cancel-button:hover {
+.profile-day-shift .profile-cancel-button:hover {
   background: rgba(239, 68, 68, 0.2);
   border-color: rgba(239, 68, 68, 0.5);
   transform: scale(1.05);
 }
 
-/* --- Dark mode override --- */
-@media (prefers-color-scheme: dark) {
-  .modern-page-container { color: #f1e1ec; }
-
-  .modern-profile-hero {
-    background: rgba(31, 24, 37, 0.95);
-    border-bottom-color: rgba(236, 72, 153, 0.2);
-  }
-
-  .modern-profile-subtitle { color: #d1d5db; }
-
-  .modern-stat-card {
-    background: rgba(31, 24, 37, 0.7);
-    border-color: rgba(236, 72, 153, 0.15);
-  }
-
-  .modern-stat-number { color: #f9a8d4; }
-  .modern-stat-code {
-    color: #f9a8d4;
-    background: rgba(236, 72, 153, 0.15);
-  }
-  .modern-stat-label { color: #e5e7eb; }
-
-  .modern-stat-note.success { color: #34d399; }
-  .modern-stat-note.warning { color: #fbbf24; }
-  .modern-stat-note.muted { color: #d1d5db; }
-
-  .modern-section-title { color: #f9a8d4; }
-  .modern-section-description { color: #d1d5db; }
-
-  .modern-loading-state p { color: #e5e7eb; }
-  .modern-empty-title { color: #f9a8d4; }
-  .modern-empty-description { color: #e5e7eb; }
-
-  .modern-day-group {
-    background: rgba(31, 24, 37, 0.7);
-    border-color: rgba(236, 72, 153, 0.2);
-  }
-
-  .modern-day-shift {
-    background: rgba(236, 72, 153, 0.1);
-    border-left-color: #f472b6;
-  }
-
-  .modern-day-shift-role { color: #f9a8d4; }
-  .modern-day-shift-continues { color: #d1d5db; }
-  .modern-day-shift-time { color: #e5e7eb; }
-
-  .modern-day-shift.continues-from {
-    border-top-color: rgba(244, 114, 182, 0.45);
-  }
-
-  .modern-day-shift-details {
-    border-top-color: rgba(236, 72, 153, 0.2);
-  }
-
-  .modern-detail-item { color: #e5e7eb; }
-  .modern-detail-label { color: #d1d5db; }
-  .modern-detail-text { color: #f1e1ec; }
-  .modern-detail-link { color: #f9a8d4; }
-  .modern-detail-link:hover { color: #fbcfe8; }
-}
 
 /* Responsive */
 @media (max-width: 768px) {
-  .modern-profile-hero-content {
+  .profile-hero-content {
     flex-direction: column;
     text-align: center;
   }
 
-  .modern-profile-title { font-size: 2rem; }
+  .profile-title { font-size: 2rem; }
 
-  .modern-stats-grid { grid-template-columns: 1fr; }
+  .profile-stats-grid { grid-template-columns: 1fr; }
 }

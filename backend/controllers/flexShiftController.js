@@ -3,6 +3,7 @@ const User = require("../models/User");
 const ShiftRole = require("../models/ShiftRole");
 const { getActiveEvent } = require("../utils/getActiveEvent");
 const emailService = require("../utils/emailService");
+const { ensurePendingRoleRequest } = require("./roleRequestController");
 
 // GET users shifts
 const getUserFlexShifts = async (req, res) => {
@@ -25,15 +26,47 @@ const getUserFlexShifts = async (req, res) => {
         status: s.status
       }));
 
-    const totalHours = shifts.reduce((sum, shift) => {
+    const hoursForShift = (shift) => {
       const start = new Date(`1970-01-01T${shift.startTime}`);
       let end = new Date(`1970-01-01T${shift.endTime}`);
       if (end < start) end.setDate(end.getDate() + 1);
-      const hours = (end - start) / (1000 * 60 * 60);
-      return sum + hours;
-    }, 0);
+      return (end - start) / (1000 * 60 * 60);
+    };
 
-    res.json({ shifts, totalHours });
+    // Discount-code gate: hours on a restricted role don't count toward the
+    // totalHours the frontend uses for the 8hr/16hr discount thresholds
+    // (UserProfile.js) until the volunteer is actually approved for that
+    // role -- see ShiftRole.restricted / User.approvedRoles. The shift
+    // itself still shows up in their schedule either way; this only affects
+    // which hours get summed. Getting approved later makes those hours
+    // count retroactively, since this is computed fresh on every request
+    // rather than stored.
+    const roleNames = [...new Set(shifts.map((s) => s.role))];
+    const restrictedRoleDocs = await ShiftRole.find({
+      name: { $in: roleNames },
+      restricted: true
+    }).select("name");
+    const restrictedRoleNames = new Set(restrictedRoleDocs.map((r) => r.name));
+    const approvedRoles = Array.isArray(user.approvedRoles) ? user.approvedRoles : [];
+
+    let totalHours = 0;
+    let pendingApprovalHours = 0;
+
+    for (const shift of shifts) {
+      const hours = hoursForShift(shift);
+      const needsApproval = restrictedRoleNames.has(shift.role) && !approvedRoles.includes(shift.role);
+      // Annotated directly on the shift object (not just summed separately)
+      // so the frontend can flag which specific shift is pending without
+      // re-deriving restricted/approvedRoles itself -- see UserProfile.js.
+      shift.pendingApproval = needsApproval;
+      if (needsApproval) {
+        pendingApprovalHours += hours;
+      } else {
+        totalHours += hours;
+      }
+    }
+
+    res.json({ shifts, totalHours, pendingApprovalHours });
   } catch (err) {
     res.status(500).json({ message: "Error fetching user shifts", error: err.message });
   }
@@ -127,18 +160,19 @@ const signUpForFlexShift = async (req, res) => {
 
     // Restricted-role gate: this role is only open to volunteers the
     // department owner has pre-approved (see ShiftRole.restricted /
-    // User.approvedRoles). Checked before the acknowledgment gate so an
-    // unapproved volunteer never even sees the acknowledgment text.
+    // User.approvedRoles). This used to hard-reject the signup here and
+    // make the volunteer click a separate "Request Access" button
+    // afterward. Now it does both in one step: the signup goes through
+    // (they're reserved a spot, same as anyone else) and a RoleRequest is
+    // filed automatically -- see below, after the shift is saved. The
+    // volunteer shows up flagged "Unapproved" in AdminRoleView (same
+    // treatment as someone who signed up before the role was restricted),
+    // and their hours don't count toward the discount thresholds on their
+    // profile (see getUserFlexShifts) until an admin approves them.
+    let approvalRequired = false;
     if (roleDoc && roleDoc.restricted) {
       const approvedRoles = Array.isArray(user.approvedRoles) ? user.approvedRoles : [];
-      if (!approvedRoles.includes(roleDoc.name)) {
-        return res.status(403).json({
-          message: `This role requires approval before signup. Contact ${roleDoc.pointOfContact || "the department lead"} to request access.`,
-          approvalRequired: true,
-          pointOfContact: roleDoc.pointOfContact || null,
-          contactPhone: roleDoc.contactPhone || null
-        });
-      }
+      approvalRequired = !approvedRoles.includes(roleDoc.name);
     }
 
     // If this role requires acknowledgment, enforce it server-side.
@@ -176,8 +210,21 @@ const signUpForFlexShift = async (req, res) => {
       }
     });
 
-    res.json({ message: "Signed up successfully" });
+    // File the access request now that the signup itself has succeeded --
+    // idempotent, so this is harmless if they already have one pending
+    // (e.g. they signed up for a second shift under the same role).
+    if (approvalRequired) {
+      await ensurePendingRoleRequest(user, roleDoc.name);
+    }
+
+    res.json({
+      message: "Signed up successfully",
+      approvalRequired,
+      pointOfContact: approvalRequired ? (roleDoc.pointOfContact || null) : null,
+      contactPhone: approvalRequired ? (roleDoc.contactPhone || null) : null
+    });
   } catch (err) {
+    console.error("🔥 signUpForFlexShift error:", err);
     res.status(500).json({ message: "Error signing up", error: err.message });
   }
 };

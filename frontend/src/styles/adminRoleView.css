@@ -648,6 +648,16 @@
   font-weight: 600;
   color: #f9a8d4;
   line-height: 1.2;
+  /* Without these, a long unbreakable string (a preferredName-less
+     volunteer falls back to their email, e.g. "bunny@burlycon.org") can't
+     shrink or wrap, so it refuses to give up space to
+     .volunteer-contact-top-actions next to it -- pushing/overflowing that
+     card's action buttons out of alignment with every other card in the
+     same shift, whose shorter names behave fine. */
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .volunteer-contact-methods {

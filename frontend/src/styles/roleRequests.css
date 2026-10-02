@@ -175,6 +175,17 @@
   cursor: default;
 }
 
+/* Wraps the pending-approval note + the existing Cancel button together
+   once signed up on a restricted role -- so clicking Sign Up now does
+   both the signup and the access request, and this is what shows
+   instead of a separate "Request Access" step. */
+.modern-signedup-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
 .modern-request-pending-note {
   font-size: 0.85rem;
   color: #fbbf24;

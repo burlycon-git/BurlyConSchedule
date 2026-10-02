@@ -94,6 +94,46 @@ class EmailService {
     );
   }
 
+  // ---------- Daily shifts digest (sent once each morning, lists every
+  // shift a volunteer has that day, instead of a separate text/email per
+  // shift). Replaces the old 15-minutes-before SMS-style reminder -- most
+  // volunteers work more than one shift a day, so one morning email beats
+  // several same-day pings. ----------
+
+  createDailyShiftsDigestMessage({ volunteerName, shifts }) {
+    const greeting = volunteerName ? `Hi ${volunteerName},` : "Hi,";
+    const count = shifts.length;
+    const intro =
+      count === 1
+        ? `Here's your shift for today:`
+        : `Here are your ${count} shifts for today:`;
+
+    const shiftLines = shifts
+      .map((s) => {
+        const start = this.formatTime(s.startTime);
+        const end = this.formatTime(s.endTime);
+        const locationText = s.location ? ` -- ${s.location}` : "";
+        return `  - ${s.role}: ${start} to ${end}${locationText}`;
+      })
+      .join("\n");
+
+    return (
+      `${greeting}\n\n` +
+      `${intro}\n\n` +
+      `${shiftLines}\n\n` +
+      `Thanks for volunteering today!\n\n-- ${COORDINATOR_NAME}`
+    );
+  }
+
+  async sendDailyShiftsDigest(email, details) {
+    const count = details.shifts.length;
+    const subject =
+      count === 1
+        ? `Your BurlyCon shift today: ${details.shifts[0].role}`
+        : `Your BurlyCon shifts today (${count})`;
+    return this.send(email, subject, this.createDailyShiftsDigestMessage(details));
+  }
+
   // ---------- Removed from a shift ----------
 
   createRemovalMessage({ role, date, startTime, reason }) {
@@ -220,8 +260,8 @@ class EmailService {
   // In-app version -- see note on createInAppRemovalMessage above.
   createInAppRoleRequestDeniedMessage({ role }) {
     return (
-      `Thanks for your interest in "${role}" -- we're not able to approve it right now. ` +
-      `You're welcome to check back and request again later.\n\n` +
+      `Thanks for your interest in "${role}" -- your request has been denied. ` +
+      `You're welcome to check with the chair or lead and request again later.\n\n` +
       `Questions? Use the Contact Coordinator button.\n\n-- ${COORDINATOR_NAME}`
     );
   }

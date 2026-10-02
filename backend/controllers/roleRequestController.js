@@ -3,6 +3,24 @@ const ShiftRole = require("../models/ShiftRole");
 const User = require("../models/User");
 const emailService = require("../utils/emailService");
 
+// Idempotent core of "request access to a restricted role": returns the
+// existing pending request if there is one, otherwise creates one. Shared
+// by submitRoleRequest (the standalone volunteer-facing endpoint, used
+// when someone clicks "Request Access" on a shift they're already
+// registered for) and signUpForFlexShift's one-click
+// sign-up-and-request-at-once path. Past denied rows are left alone as
+// history -- this only ever touches pending/creates new.
+async function ensurePendingRoleRequest(user, role) {
+  const existingPending = await RoleRequest.findOne({ user: user._id, role, status: "pending" });
+  if (existingPending) {
+    console.log(`📋 ensurePendingRoleRequest: reusing existing pending request for ${user.email} / "${role}"`);
+    return existingPending;
+  }
+  const created = await RoleRequest.create({ user: user._id, role, status: "pending" });
+  console.log(`📋 ensurePendingRoleRequest: created new pending request ${created._id} for ${user.email} / "${role}"`);
+  return created;
+}
+
 // POST volunteer-facing: request access to a restricted role.
 // Body: { userId: <fusionAuthId>, role: <ShiftRole.name> }
 const submitRoleRequest = async (req, res) => {
@@ -23,14 +41,7 @@ const submitRoleRequest = async (req, res) => {
       return res.status(400).json({ message: "Already approved for this role" });
     }
 
-    // Idempotent: clicking "Request Access" twice doesn't create duplicate
-    // pending rows. Past denied rows are left alone as history.
-    const existingPending = await RoleRequest.findOne({ user: user._id, role, status: "pending" });
-    if (existingPending) {
-      return res.status(200).json({ message: "Request already pending", roleRequest: existingPending });
-    }
-
-    const roleRequest = await RoleRequest.create({ user: user._id, role, status: "pending" });
+    const roleRequest = await ensurePendingRoleRequest(user, role);
     res.status(201).json({ message: "Request submitted", roleRequest });
   } catch (err) {
     res.status(500).json({ message: "Error submitting request", error: err.message });
@@ -46,6 +57,20 @@ const listRoleRequestsForRole = async (req, res) => {
 
   try {
     const query = { role: roleName, status: status || "pending" };
+    console.log("📋 listRoleRequestsForRole query:", JSON.stringify(query));
+    const allForRole = await RoleRequest.find({ role: roleName });
+    console.log(
+      `📋 listRoleRequestsForRole: ${allForRole.length} total request(s) exist for role "${roleName}" (any status):`,
+      allForRole.map((r) => ({ id: r._id, status: r.status, role: r.role }))
+    );
+    // Unfiltered -- catches a role-name mismatch (e.g. trailing space,
+    // different casing) that the query above would silently return 0 for
+    // even though a request really was created.
+    const everything = await RoleRequest.find({});
+    console.log(
+      `📋 listRoleRequestsForRole: ${everything.length} RoleRequest doc(s) exist in total, across all roles:`,
+      everything.map((r) => ({ id: r._id, role: JSON.stringify(r.role), status: r.status }))
+    );
     const requests = await RoleRequest.find(query)
       .populate("user", "preferredName email phone")
       .sort({ createdAt: 1 });
@@ -164,5 +189,6 @@ module.exports = {
   listApprovedVolunteersForRole,
   approveRoleRequest,
   denyRoleRequest,
-  notifyRoleRequestDecision
+  notifyRoleRequestDecision,
+  ensurePendingRoleRequest
 };

@@ -5,6 +5,13 @@ import Header from "./Header";
 export default function UserProfile() {
   const [volunteerShifts, setVolunteerShifts] = useState([]);
   const [totalHours, setTotalHours] = useState(0);
+  // Hours sitting on a restricted-role shift the volunteer isn't approved
+  // for yet (see ShiftRole.restricted / User.approvedRoles). Excluded from
+  // totalHours above -- the discount thresholds below don't see them until
+  // an admin approves the role, even though the shift still shows up in
+  // "My Volunteer Shifts". Surfaced here so hours worked don't just
+  // silently not count toward a code with no explanation.
+  const [pendingApprovalHours, setPendingApprovalHours] = useState(0);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState([]);
 
@@ -40,6 +47,7 @@ export default function UserProfile() {
         const data = await res.json();
         setVolunteerShifts(data.shifts || []);
         setTotalHours(data.totalHours || 0);
+        setPendingApprovalHours(data.pendingApprovalHours || 0);
       } catch (err) {
         console.error("Error fetching volunteer info:", err);
       } finally {
@@ -76,6 +84,7 @@ export default function UserProfile() {
         const data2 = await res2.json();
         setVolunteerShifts(data2.shifts || []);
         setTotalHours(data2.totalHours || 0);
+        setPendingApprovalHours(data2.pendingApprovalHours || 0);
       } else {
         const err = await response.json();
         console.error("Cancel failed:", err.message);
@@ -122,68 +131,68 @@ export default function UserProfile() {
   const hoursToFull = Math.max(0, 16 - totalHours);
 
   return (
-    <div className="modern-page-container">
+    <div className="profile-page-container">
       <Header />
 
-      <div className="modern-profile-hero">
-        <div className="modern-profile-hero-content">
-          <div className="modern-profile-avatar">
+      <div className="profile-hero">
+        <div className="profile-hero-content">
+          <div className="profile-avatar">
             {userName.charAt(0).toUpperCase()}
           </div>
-          <div className="modern-profile-info">
-            <h1 className="modern-profile-title">
+          <div className="profile-info">
+            <h1 className="profile-title">
               Welcome back, {userName}!
             </h1>
-            <p className="modern-profile-subtitle">
+            <p className="profile-subtitle">
               Your volunteer dashboard
             </p>
           </div>
         </div>
       </div>
 
-      <div className="modern-content-wrapper">
-        <div className="modern-stats-section">
-          <div className="modern-stats-grid">
-            <div className="modern-stat-card hours">
-              <div className="modern-stat-icon">⏰</div>
-              <div className="modern-stat-content">
-                <div className="modern-stat-number">{displayHours}</div>
-                <div className="modern-stat-label">Hours Volunteered</div>
+      <div className="profile-content-wrapper">
+        <div className="profile-stats-section">
+          <div className="profile-stats-grid">
+            <div className="profile-stat-card hours">
+              <div className="profile-stat-icon">⏰</div>
+              <div className="profile-stat-content">
+                <div className="profile-stat-number">{displayHours}</div>
+                <div className="profile-stat-label">Hours Volunteered</div>
               </div>
             </div>
-            <div className="modern-stat-card shifts">
-              <div className="modern-stat-icon">📅</div>
-              <div className="modern-stat-content">
-                <div className="modern-stat-number">
+            <div className="profile-stat-card shifts">
+              <div className="profile-stat-icon">📅</div>
+              <div className="profile-stat-content">
+                <div className="profile-stat-number">
                   {volunteerShifts.length}
                 </div>
-                <div className="modern-stat-label">Active Shifts</div>
+                <div className="profile-stat-label">Active Shifts</div>
               </div>
             </div>
-            <div className="modern-stat-card status">
-              <div className="modern-stat-icon">🎟️</div>
-              <div className="modern-stat-content">
+            <div className="profile-stat-card status">
+              <div className="profile-stat-icon">🎟️</div>
+              <div className="profile-stat-content">
                 {totalHours >= 16 ? (
                   <>
-                    <div className="modern-stat-code">v0lunteer26</div>
-                    <div className="modern-stat-label">100% Off Ticket Code!</div>
-                    <div className="modern-stat-note success">
+                    <div className="profile-stat-code">v0lunteer26</div>
+                    <div className="profile-stat-label">100% Off Ticket Code!</div>
+                    <div className="profile-stat-note success">
                       ✨ You've earned a free ticket!
                     </div>
                   </>
                 ) : totalHours >= 8 ? (
                   <>
-                    <div className="modern-stat-code">v0lunteer2650</div>
-                    <div className="modern-stat-label">50% Off Ticket Code!</div>
-                    <div className="modern-stat-note warning">
+                    <div className="profile-stat-code">v0lunteer2650</div>
+                    <div className="profile-stat-label">50% Off Ticket Code!</div>
+                    <div className="profile-stat-note warning">
                       {roundHours(hoursToFull)} more hours for 100% off!
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="modern-stat-number">{displayHours}/8</div>
-                    <div className="modern-stat-label">Hours to 50% Off</div>
-                    <div className="modern-stat-note muted">
+                    <div className="profile-stat-number">{displayHours}/8</div>
+                    <div className="profile-stat-label">Hours to 50% Off</div>
+                    <div className="profile-stat-note muted">
                       Sign up for {roundHours(hoursToHalf)} more hours to unlock your discount code!
                     </div>
                   </>
@@ -191,38 +200,46 @@ export default function UserProfile() {
               </div>
             </div>
           </div>
+
+          {pendingApprovalHours > 0 && (
+            <p className="profile-pending-approval-note">
+              ⏳ {roundHours(pendingApprovalHours)} hour{pendingApprovalHours === 1 ? "" : "s"} from a
+              restricted role {pendingApprovalHours === 1 ? "is" : "are"} still pending approval and
+              not yet counted above. They'll count automatically once you're approved.
+            </p>
+          )}
         </div>
 
-        <div className="modern-shifts-section">
-          <div className="modern-section-header">
-            <h2 className="modern-section-title">My Volunteer Shifts</h2>
+        <div className="profile-shifts-section">
+          <div className="profile-section-header">
+            <h2 className="profile-section-title">My Volunteer Shifts</h2>
             {volunteerShifts.length > 0 && (
-              <p className="modern-section-description">
+              <p className="profile-section-description">
                 Manage your upcoming volunteer commitments
               </p>
             )}
           </div>
 
           {loading ? (
-            <div className="modern-loading-state">
-              <div className="modern-loading-spinner"></div>
+            <div className="profile-loading-state">
+              <div className="profile-loading-spinner"></div>
               <p>Loading your shifts...</p>
             </div>
           ) : volunteerShifts.length === 0 ? (
-            <div className="modern-empty-state">
-              <div className="modern-empty-icon">📅</div>
-              <h3 className="modern-empty-title">No shifts scheduled</h3>
-              <p className="modern-empty-description">
+            <div className="profile-empty-state">
+              <div className="profile-empty-icon">📅</div>
+              <h3 className="profile-empty-title">No shifts scheduled</h3>
+              <p className="profile-empty-description">
                 Ready to help make BurlyCon amazing? Browse available volunteer
                 opportunities!
               </p>
-              <a href="/volunteer" className="modern-empty-action">
-                <span className="modern-button-icon">🔍</span>
+              <a href="/volunteer" className="profile-empty-action">
+                <span className="profile-button-icon">🔍</span>
                 Browse Volunteer Shifts
               </a>
             </div>
           ) : (
-            <div className="modern-day-list">
+            <div className="profile-day-list">
               {sortedDates.map((date) => {
                 // Sort by start time within the day
                 const dayShifts = groupedByDate[date].sort((a, b) =>
@@ -245,11 +262,11 @@ export default function UserProfile() {
                 });
 
                 return (
-                  <div key={date} className="modern-day-group">
-                    <div className="modern-day-header">
+                  <div key={date} className="profile-day-group">
+                    <div className="profile-day-header">
                       {formatLocalDateYMD(date)}
                     </div>
-                    <div className="modern-day-shifts">
+                    <div className="profile-day-shifts">
                       {annotated.map((shift) => {
                         const roleDetails = getRoleDetails(shift.role);
                         const hasContact =
@@ -260,39 +277,47 @@ export default function UserProfile() {
                         return (
                           <div
                             key={shift._id}
-                            className={`modern-day-shift ${shift.continuesFromPrev ? "continues-from" : ""} ${shift.continuesToNext ? "continues-to" : ""}`}
+                            className={`profile-day-shift ${shift.continuesFromPrev ? "continues-from" : ""} ${shift.continuesToNext ? "continues-to" : ""} ${shift.pendingApproval ? "profile-day-shift-pending" : ""}`}
                           >
-                            <div className="modern-day-shift-main">
-                              <div className="modern-day-shift-role">
+                            <div className="profile-day-shift-main">
+                              <div className="profile-day-shift-role">
                                 {shift.role}
                                 {shift.continuesFromPrev && (
-                                  <span className="modern-day-shift-continues"> (continues)</span>
+                                  <span className="profile-day-shift-continues"> (continues)</span>
+                                )}
+                                {shift.pendingApproval && (
+                                  <span
+                                    className="profile-day-shift-unapproved-tag"
+                                    title="This role requires admin approval. Your spot is reserved, but these hours won't count toward your discount code until you're approved."
+                                  >
+                                    ⚠️ Pending approval
+                                  </span>
                                 )}
                               </div>
-                              <div className="modern-day-shift-time">
+                              <div className="profile-day-shift-time">
                                 🕒 {formatTime(shift.startTime)} – {formatTime(shift.endTime)}
                               </div>
                             </div>
 
                             {hasContact && !shift.continuesFromPrev && (
-                              <div className="modern-day-shift-details">
+                              <div className="profile-day-shift-details">
                                 {roleDetails.location && (
-                                  <div className="modern-detail-item">
-                                    <span className="modern-detail-icon">📍</span>
-                                    <span className="modern-detail-text">{roleDetails.location}</span>
+                                  <div className="profile-detail-item">
+                                    <span className="profile-detail-icon">📍</span>
+                                    <span className="profile-detail-text">{roleDetails.location}</span>
                                   </div>
                                 )}
                                 {roleDetails.pointOfContact && (
-                                  <div className="modern-detail-item">
-                                    <span className="modern-detail-icon">👤</span>
-                                    <span className="modern-detail-label">Lead:</span>
-                                    <span className="modern-detail-text">{roleDetails.pointOfContact}</span>
+                                  <div className="profile-detail-item">
+                                    <span className="profile-detail-icon">👤</span>
+                                    <span className="profile-detail-label">Lead:</span>
+                                    <span className="profile-detail-text">{roleDetails.pointOfContact}</span>
                                   </div>
                                 )}
                                 {roleDetails.contactPhone && (
-                                  <div className="modern-detail-item">
-                                    <span className="modern-detail-icon">📞</span>
-                                    <a href={`tel:${roleDetails.contactPhone}`} className="modern-detail-link">
+                                  <div className="profile-detail-item">
+                                    <span className="profile-detail-icon">📞</span>
+                                    <a href={`tel:${roleDetails.contactPhone}`} className="profile-detail-link">
                                       {roleDetails.contactPhone}
                                     </a>
                                   </div>
@@ -302,7 +327,7 @@ export default function UserProfile() {
 
                             <button
                               type="button"
-                              className="modern-cancel-button"
+                              className="profile-cancel-button"
                               onClick={() => handleCancelShift(shift._id)}
                               title="Cancel this shift"
                             >

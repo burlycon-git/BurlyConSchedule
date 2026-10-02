@@ -91,7 +91,21 @@
   padding: 1rem 1.5rem;
   border-radius: 0.75rem;
   font-weight: 600;
-  display: inline-block;
+  display: block;
+  width: fit-content;
+  margin: 1.25rem auto 0;
+  text-align: center;
+}
+
+/* Shown instead of the default green styling above when every signed-up
+   shift for the day is still waiting on role approval (see
+   isPendingApproval) -- same amber used for the per-shift "Pending
+   approval" note and the admin-side Unapproved badges, so the color means
+   the same thing everywhere in this feature. */
+.modern-signup-summary.pending-approval {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(217, 119, 6, 0.35);
+  color: #b45309;
 }
 
 /* Content Wrapper */
