@@ -1,4 +1,14 @@
-/* Modern Admin Dashboard - BurlyCon Theme Redesign */
+/* Modern Admin Dashboard - BurlyCon Theme Redesign
+   Dark-only theme (see adminLanding.css / adminRoleView.css for the same
+   note) -- this page is always dark, so no light-default values remain.
+
+   Also: backdrop-filter + low-opacity background is unreliable on mobile
+   (especially combined with position: sticky, as on the header). When the
+   blur fails to render -- which happens often on phones -- the "glass"
+   background goes fully transparent and you see the plain white page body
+   underneath instead, which is exactly the washed-out light band some
+   admin pages showed on mobile. Fixed by using solid dark backgrounds
+   instead of relying on blur. */
 
 .modern-page-container {
   min-height: 100vh;
@@ -8,8 +18,7 @@
 
 /* Header Section - Cleaner and More Readable */
 .modern-header-section {
-  background: rgba(31, 24, 37, 0.95);
-  backdrop-filter: blur(10px);
+  background: #1f1825;
   border-bottom: 1px solid rgba(236, 72, 153, 0.2);
   position: sticky;
   top: 0;
@@ -58,11 +67,10 @@
 }
 
 .modern-summary-card {
-  background: rgba(255, 255, 255, 0.7); 
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 1.25rem;
   padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   border: 1px solid rgba(236, 72, 153, 0.15);
   transition: all 0.3s ease;
   position: relative;
@@ -93,7 +101,7 @@
 
 .modern-summary-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
 }
 
 .modern-summary-icon {
@@ -115,19 +123,18 @@
 }
 
 .modern-summary-title {
-  font-size: 0.95rem; /* Increase from 0.875rem */
+  font-size: 0.95rem;
   font-weight: 600;
-  color: #4b5563; /* Darker gray */
+  color: rgba(241, 225, 236, 0.75);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  opacity: 1; /* Remove the 0.9 opacity */
+  opacity: 1;
 }
 
 /* Filter Section - Improved Contrast and Spacing */
 .modern-filter-section {
   margin-bottom: 2rem;
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 1rem;
   padding: 1.75rem;
   border: 1px solid rgba(236, 72, 153, 0.1);
@@ -236,10 +243,9 @@
 }
 
 .modern-volunteer-card {
-  background: rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 1.25rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   border: 1px solid rgba(236, 72, 153, 0.15);
   transition: all 0.3s ease;
   overflow: hidden;
@@ -247,7 +253,7 @@
 
 .modern-volunteer-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
   border-color: rgba(236, 72, 153, 0.3);
 }
 
@@ -441,7 +447,7 @@
 
 .modern-shift-time {
   flex: 1;
-  color: #f3f4f6; 
+  color: #f3f4f6;
   font-weight: 500;
 }
 
@@ -452,10 +458,10 @@
   justify-content: center;
   gap: 0.75rem;
   padding: 2rem;
-  background: rgba(107, 114, 128, 0.05);
-  border: 1px dashed rgba(107, 114, 128, 0.2);
+  background: rgba(107, 114, 128, 0.08);
+  border: 1px dashed rgba(156, 163, 175, 0.3);
   border-radius: 0.75rem;
-  color: #9ca3af;
+  color: #d1d5db;
   font-size: 0.9375rem;
 }
 
@@ -553,39 +559,39 @@
   .modern-page-title {
     font-size: 2rem;
   }
-  
+
   .modern-summary-dashboard {
     grid-template-columns: 1fr;
   }
-  
+
   .modern-filter-header {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .modern-filter-controls {
     width: 100%;
     flex-direction: column;
   }
-  
+
   .modern-search-container {
     min-width: 100%;
   }
-  
+
   .modern-volunteer-header {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .modern-volunteer-stats {
     flex-direction: row;
     justify-content: center;
   }
-  
+
   .modern-restriction-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .modern-shifts-list {
     grid-template-columns: 1fr;
   }
@@ -594,7 +600,7 @@
   /* Schedule Image Section */
 .modern-schedule-section {
   margin-bottom: 2rem;
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.03);
   border-radius: 1rem;
   padding: 1.75rem;
   border: 1px solid rgba(236, 72, 153, 0.1);
@@ -680,7 +686,7 @@
   .modern-schedule-image {
     max-width: 100%;
   }
-  
+
   .modern-schedule-overlay {
     transform: translateY(0);
     opacity: 0.95;

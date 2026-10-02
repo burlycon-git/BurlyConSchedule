@@ -1,14 +1,33 @@
-/* Light mode defaults; dark mode override at the bottom */
+/* Dark-only theme -- matches admin.css / adminDash.css / adminLanding.css /
+   adminRoleView.css. This file used to be "light mode defaults, dark mode
+   override at the bottom" via @media (prefers-color-scheme: dark), which
+   only looked right when the viewer's OS happened to also be set to dark.
+
+   This turned out to be the file actually winning the cascade for the
+   shared .modern-header-section / .modern-summary-card / .modern-filter-section
+   classes across ALL the admin pages (admin.css, adminDash.css, adminShifts.css,
+   and this file all define the same class names; CRA bundles every CSS file
+   that's imported anywhere into one global stylesheet, and because
+   AdminVolunteers.jsx -- which imports this file -- is imported later than
+   the others in App.js, this file's rules came last and won every tie).
+   So even though the other files were already fixed to be dark-only, this
+   one's light defaults were still the ones actually rendering. Merged the
+   dark values in as the single default and dropped the media query
+   entirely, same as the rest. Also dropped backdrop-filter from the sticky
+   header and the other glass panels -- blur + position:sticky is
+   unreliable on mobile; when it fails to paint you see the plain page body
+   through a "transparent" panel instead of the intended dark background,
+   which is exactly the washed-out light band this was causing. */
 
 .modern-page-container {
   min-height: 100vh;
-  color: #4b1d3f;
+  background: linear-gradient(135deg, #2a1f2e 0%, #1f1825 100%);
+  color: #f1e1ec;
 }
 
 /* Header Section */
 .modern-header-section {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
+  background: #1f1825;
   border-bottom: 1px solid rgba(236, 72, 153, 0.2);
   position: sticky;
   top: 0;
@@ -35,9 +54,10 @@
 }
 
 .modern-page-subtitle {
-  color: #6b2d5c;
+  color: #e5e7eb;
   font-size: 1.125rem;
   font-weight: 400;
+  opacity: 0.9;
 }
 
 .modern-content-wrapper {
@@ -55,12 +75,11 @@
 }
 
 .modern-summary-card {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 1.25rem;
   padding: 2rem;
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
-  border: 1px solid rgba(236, 72, 153, 0.2);
+  box-shadow: none;
+  border: 1px solid rgba(236, 72, 153, 0.15);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -82,7 +101,7 @@
 
 .modern-summary-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(124, 58, 237, 0.15);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
 }
 
 .modern-summary-icon {
@@ -97,7 +116,7 @@
 .modern-summary-number {
   font-size: 2.75rem;
   font-weight: 700;
-  color: #be185d;
+  color: #f9a8d4;
   margin: 0;
   line-height: 1;
 }
@@ -105,7 +124,7 @@
 .modern-summary-title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #4b1d3f;
+  color: rgba(241, 225, 236, 0.75);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-top: 0.5rem;
@@ -113,11 +132,10 @@
 
 /* Filter Section */
 .modern-filter-section {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 1rem;
   padding: 1.75rem;
-  border: 1px solid rgba(236, 72, 153, 0.2);
+  border: 1px solid rgba(236, 72, 153, 0.15);
   margin-bottom: 2rem;
 }
 
@@ -132,7 +150,7 @@
 .modern-filter-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #be185d;
+  color: #f9a8d4;
   margin: 0;
 }
 
@@ -154,20 +172,20 @@
   width: 100%;
   padding: 0.875rem 1rem;
   padding-right: 3rem;
-  border: 2px solid rgba(236, 72, 153, 0.3);
+  border: 2px solid rgba(236, 72, 153, 0.25);
   border-radius: 0.75rem;
-  background: rgba(255, 255, 255, 0.9);
-  color: #4b1d3f;
+  background: rgba(0, 0, 0, 0.3);
+  color: #f1e1ec;
   font-size: 1rem;
   transition: all 0.3s ease;
 }
 
-.modern-search-input::placeholder { color: #8b3a6e; }
+.modern-search-input::placeholder { color: #9ca3af; }
 
 .modern-search-input:focus {
   outline: none;
   border-color: #ec4899;
-  background: #fff;
+  background: rgba(0, 0, 0, 0.5);
   box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
 }
 
@@ -193,10 +211,10 @@
 
 .modern-sort-select {
   padding: 0.875rem 1.25rem;
-  border: 2px solid rgba(236, 72, 153, 0.3);
+  border: 2px solid rgba(236, 72, 153, 0.25);
   border-radius: 0.75rem;
-  background: rgba(255, 255, 255, 0.9);
-  color: #4b1d3f;
+  background: rgba(0, 0, 0, 0.3);
+  color: #f1e1ec;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -218,18 +236,17 @@
 }
 
 .modern-volunteer-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 1.25rem;
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
-  border: 1px solid rgba(236, 72, 153, 0.2);
+  box-shadow: none;
+  border: 1px solid rgba(236, 72, 153, 0.15);
   transition: all 0.3s ease;
   overflow: hidden;
 }
 
 .modern-volunteer-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(124, 58, 237, 0.2);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
   border-color: rgba(236, 72, 153, 0.4);
 }
 
@@ -238,7 +255,7 @@
   align-items: center;
   gap: 1.25rem;
   padding: 1.75rem;
-  background: rgba(236, 72, 153, 0.06);
+  background: rgba(236, 72, 153, 0.05);
 }
 
 .modern-volunteer-avatar {
@@ -261,7 +278,7 @@
 .modern-volunteer-name {
   font-size: 1.375rem;
   font-weight: 600;
-  color: #be185d;
+  color: #f9a8d4;
   margin: 0 0 0.375rem 0;
   line-height: 1.3;
   display: flex;
@@ -273,7 +290,7 @@
 
 .modern-volunteer-email {
   font-size: 0.9375rem;
-  color: #6b2d5c;
+  color: #d1d5db;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -300,13 +317,13 @@
 .modern-stat-number {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #be185d;
+  color: #f9a8d4;
   line-height: 1;
 }
 
 .modern-stat-label {
   font-size: 0.75rem;
-  color: #6b2d5c;
+  color: #e5e7eb;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -331,7 +348,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(0, 0, 0, 0.25);
   border-radius: 0.5rem;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -341,7 +358,7 @@
 
 .modern-field-label {
   font-size: 0.9375rem;
-  color: #4b1d3f;
+  color: #e5e7eb;
   font-weight: 500;
   flex: 1;
 }
@@ -356,14 +373,14 @@
 /* Volunteer Shifts */
 .modern-volunteer-shifts {
   padding: 1.5rem 1.75rem;
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.2);
   border-top: 1px solid rgba(236, 72, 153, 0.15);
 }
 
 .modern-shifts-title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #be185d;
+  color: #f9a8d4;
   margin: 0 0 1.25rem 0;
   display: flex;
   align-items: center;
@@ -394,7 +411,7 @@
 
 .modern-role-name {
   font-weight: 600;
-  color: #be185d;
+  color: #f9a8d4;
   font-size: 1rem;
 }
 
@@ -407,12 +424,12 @@
 .modern-shift-date {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #4b1d3f;
+  color: #e5e7eb;
 }
 
 .modern-shift-time {
   flex: 1;
-  color: #6b2d5c;
+  color: #f3f4f6;
   font-weight: 500;
 }
 
@@ -423,10 +440,10 @@
   justify-content: center;
   gap: 0.75rem;
   padding: 2rem;
-  background: rgba(255, 255, 255, 0.4);
-  border: 1px dashed rgba(139, 92, 110, 0.3);
+  background: rgba(107, 114, 128, 0.08);
+  border: 1px dashed rgba(107, 114, 128, 0.25);
   border-radius: 0.75rem;
-  color: #8b3a6e;
+  color: #d1d5db;
   font-size: 0.9375rem;
 }
 
@@ -454,7 +471,7 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .modern-loading-state p {
-  color: #4b1d3f;
+  color: #e5e7eb;
   font-size: 1.125rem;
 }
 
@@ -470,12 +487,12 @@
 .modern-empty-title {
   font-size: 1.375rem;
   font-weight: 600;
-  color: #be185d;
+  color: #f9a8d4;
   margin-bottom: 0.75rem;
 }
 
 .modern-empty-description {
-  color: #4b1d3f;
+  color: #e5e7eb;
   margin-bottom: 2rem;
   font-size: 1rem;
   line-height: 1.6;
@@ -505,7 +522,7 @@
 
 .modern-volunteer-phone {
   display: block;
-  color: #ec4899;
+  color: #f9a8d4;
   text-decoration: none;
   font-size: 0.9375rem;
   font-weight: 500;
@@ -515,90 +532,8 @@
 }
 
 .modern-volunteer-phone:hover {
-  color: #be185d;
+  color: #fbcfe8;
   transform: translateX(2px);
-}
-
-/* --- Dark mode override --- */
-@media (prefers-color-scheme: dark) {
-  .modern-page-container {
-    color: #f1e1ec;
-  }
-
-  .modern-header-section {
-    background: rgba(31, 24, 37, 0.95);
-    border-bottom-color: rgba(236, 72, 153, 0.2);
-  }
-
-  .modern-page-subtitle { color: #e5e7eb; opacity: 0.9; }
-
-  .modern-summary-card {
-    background: rgba(31, 24, 37, 0.7);
-    border-color: rgba(236, 72, 153, 0.15);
-  }
-
-  .modern-summary-number { color: #f9a8d4; }
-  .modern-summary-title { color: #e5e7eb; }
-
-  .modern-filter-section {
-    background: rgba(0, 0, 0, 0.25);
-    border-color: rgba(236, 72, 153, 0.15);
-  }
-
-  .modern-filter-title { color: #f9a8d4; }
-
-  .modern-search-input,
-  .modern-sort-select {
-    background: rgba(0, 0, 0, 0.3);
-    color: #f1e1ec;
-    border-color: rgba(236, 72, 153, 0.25);
-  }
-
-  .modern-search-input::placeholder { color: #9ca3af; }
-
-  .modern-search-input:focus { background: rgba(0, 0, 0, 0.5); }
-
-  .modern-volunteer-card {
-    background: rgba(31, 24, 37, 0.7);
-    border-color: rgba(236, 72, 153, 0.15);
-  }
-
-  .modern-volunteer-header { background: rgba(236, 72, 153, 0.05); }
-  .modern-volunteer-name { color: #f9a8d4; }
-  .modern-volunteer-email { color: #d1d5db; }
-  .modern-stat-number { color: #f9a8d4; }
-  .modern-stat-label { color: #e5e7eb; }
-
-  .modern-restriction-panel {
-    background: rgba(236, 72, 153, 0.04);
-    border-top-color: rgba(236, 72, 153, 0.15);
-  }
-
-  .modern-field {
-    background: rgba(0, 0, 0, 0.25);
-  }
-
-  .modern-field-label { color: #e5e7eb; }
-
-  .modern-volunteer-shifts {
-    background: rgba(0, 0, 0, 0.2);
-    border-top-color: rgba(236, 72, 153, 0.15);
-  }
-
-  .modern-shifts-title { color: #f9a8d4; }
-  .modern-role-name { color: #f9a8d4; }
-  .modern-shift-date { color: #e5e7eb; }
-  .modern-shift-time { color: #f3f4f6; }
-
-  .modern-no-shifts {
-    background: rgba(107, 114, 128, 0.08);
-    border-color: rgba(107, 114, 128, 0.25);
-    color: #d1d5db;
-  }
-
-  .modern-loading-state p { color: #e5e7eb; }
-  .modern-empty-title { color: #f9a8d4; }
-  .modern-empty-description { color: #e5e7eb; }
 }
 
 /* --- Day-grouped schedule view --- */
@@ -614,9 +549,9 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #be185d;
+  color: #f9a8d4;
   padding: 0.4rem 0;
-  border-bottom: 1px solid rgba(236, 72, 153, 0.2);
+  border-bottom: 1px solid rgba(236, 72, 153, 0.25);
   margin-bottom: 0.5rem;
 }
 
@@ -626,8 +561,8 @@
 }
 
 .modern-day-shift {
-  background: rgba(236, 72, 153, 0.06);
-  border-left: 3px solid rgba(236, 72, 153, 0.5);
+  background: rgba(236, 72, 153, 0.08);
+  border-left: 3px solid rgba(244, 114, 182, 0.6);
   padding: 0.6rem 0.85rem;
   border-radius: 0 0.5rem 0.5rem 0;
   margin-bottom: 0.4rem;
@@ -646,7 +581,7 @@
   border-top-right-radius: 0;
   padding-top: 0.4rem;
   margin-top: -2px; /* tight visual link */
-  border-top: 1px dashed rgba(236, 72, 153, 0.4);
+  border-top: 1px dashed rgba(244, 114, 182, 0.4);
 }
 
 .modern-day-shift.continues-from .modern-day-shift-role {
@@ -657,34 +592,14 @@
 
 .modern-day-shift-role {
   font-weight: 600;
-  color: #be185d;
+  color: #f9a8d4;
   font-size: 0.95rem;
   margin-bottom: 0.2rem;
 }
 
 .modern-day-shift-time {
   font-size: 0.875rem;
-  color: #6b2d5c;
-}
-
-/* Dark mode for the schedule */
-@media (prefers-color-scheme: dark) {
-  .modern-day-header {
-    color: #f9a8d4;
-    border-bottom-color: rgba(236, 72, 153, 0.25);
-  }
-
-  .modern-day-shift {
-    background: rgba(236, 72, 153, 0.08);
-    border-left-color: rgba(244, 114, 182, 0.6);
-  }
-
-  .modern-day-shift-role { color: #f9a8d4; }
-  .modern-day-shift-time { color: #e5e7eb; }
-
-  .modern-day-shift.continues-from {
-    border-top-color: rgba(244, 114, 182, 0.4);
-  }
+  color: #e5e7eb;
 }
 
 /* Responsive */
