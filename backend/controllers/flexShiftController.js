@@ -46,7 +46,7 @@ const getAllFlexShifts = async (req, res) => {
     const query = activeEvent ? { eventId: activeEvent._id } : {};
 
     const shifts = await FlexibleShift.find(query)
-      .populate('volunteersRegistered', 'preferredName email fusionAuthId')
+      .populate('volunteersRegistered', 'preferredName email phone fusionAuthId approvedRoles')
       .sort({ date: 1, startTime: 1 });
     res.json(shifts);
   } catch (err) {
@@ -62,7 +62,7 @@ const getShiftsByDate = async (req, res) => {
     const query = activeEvent ? { date, eventId: activeEvent._id } : { date };
 
     const shifts = await FlexibleShift.find(query)
-      .populate('volunteersRegistered', 'preferredName email fusionAuthId')
+      .populate('volunteersRegistered', 'preferredName email phone fusionAuthId approvedRoles')
       .sort({ startTime: 1 });
     res.json(shifts);
   } catch (err) {

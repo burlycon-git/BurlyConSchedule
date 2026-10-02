@@ -163,5 +163,6 @@ module.exports = {
   listRoleRequestsForRole,
   listApprovedVolunteersForRole,
   approveRoleRequest,
-  denyRoleRequest
+  denyRoleRequest,
+  notifyRoleRequestDecision
 };

@@ -13,6 +13,13 @@ const User = require("../models/User");
 // set user and role
 const authenticateUser = require("../middleware/authMiddleware");
 
+// Reused so granting approval here (an admin approving someone who's
+// already signed up, outside the formal RoleRequest flow) notifies the
+// volunteer the same way approveRoleRequest does -- in-app notice + best-
+// effort email. See roleRequestController for the formal request/approve
+// path this mirrors.
+const { notifyRoleRequestDecision } = require("../controllers/roleRequestController");
+
 //  role gate
 const requireLeadOrAdmin = (req, res, next) => {
   const roles = req.user?.roles || [];
@@ -73,6 +80,47 @@ router.patch("/:id/restrict", authenticateUser, requireLeadOrAdmin, async (req, 
     );
     if (!user) return res.status(404).json({ error: "user_not_found" });
     res.json({ ok: true, user });
+  } catch (e) { next(e); }
+});
+
+// PATCH grant/revoke approval for a restricted ShiftRole (Lead/Admin only).
+// Body: { roleName: <ShiftRole.name>, approved: boolean }
+// approved: true  -> adds roleName to approvedRoles (addToSet, idempotent)
+// approved: false -> removes roleName from approvedRoles (used by
+// AdminRoleView's "Revoke" action; see roleRequestController for the
+// approve-via-RoleRequest path, which writes approvedRoles directly too).
+router.patch("/:id/approved-roles", authenticateUser, requireLeadOrAdmin, async (req, res, next) => {
+  try {
+    const { roleName, approved } = req.body;
+    if (!roleName || typeof roleName !== "string") {
+      return res.status(400).json({ error: "roleName is required" });
+    }
+
+    const update = approved
+      ? { $addToSet: { approvedRoles: roleName } }
+      : { $pull: { approvedRoles: roleName } };
+
+    const user = await User.findByIdAndUpdate(req.params.id, update, {
+      new: true,
+      runValidators: true
+    });
+    if (!user) return res.status(404).json({ error: "user_not_found" });
+
+    // Only notify on a grant, not a revoke -- revoking is silent today (same
+    // as before this endpoint existed), matching denyRoleRequest's behavior
+    // of not notifying either. Wrapped so a notification hiccup never blocks
+    // the approval itself from taking effect.
+    let notifyResult = null;
+    if (approved) {
+      try {
+        notifyResult = await notifyRoleRequestDecision(user, roleName, true);
+      } catch (notifyErr) {
+        console.error("Error notifying volunteer of approval:", notifyErr);
+        notifyResult = { notifiedByEmail: false, notifyError: notifyErr.message };
+      }
+    }
+
+    res.json({ ok: true, approvedRoles: user.approvedRoles, ...(notifyResult || {}) });
   } catch (e) { next(e); }
 });
 

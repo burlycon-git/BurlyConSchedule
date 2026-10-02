@@ -723,6 +723,50 @@
   cursor: default;
 }
 
+/* Groups the optional "Approve" pill next to the "Remove" icon button so
+   they sit together on the right side of a roster card's top row. */
+.volunteer-contact-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* "✓ Approve" pill -- only rendered next to a volunteer flagged
+   .volunteer-unapproved-tag (see roleRequests.css), as a one-click way to
+   grant approved-roles for someone who signed up before this role was
+   restricted (no RoleRequest exists for them, so the formal
+   approve/deny panel never sees them). */
+.volunteer-contact-approve {
+  flex-shrink: 0;
+  height: 1.4rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #86efac;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 0 0.55rem;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.volunteer-contact-approve:hover {
+  background: rgba(34, 197, 94, 0.3);
+  border-color: #22c55e;
+  color: #dcfce7;
+}
+
+.volunteer-contact-approve:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* Tighter contact card spacing inside timeline blocks */
 .timeline-shift .volunteer-contact-card {
   padding: 0.45rem 0.55rem !important;

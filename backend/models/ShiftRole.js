@@ -39,6 +39,13 @@ const shiftRoleSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // When true, this role is only open to volunteers in User.approvedRoles
+    // for this role's name. See RoleRequest for the request/approve flow
+    // that populates approvedRoles.
+    restricted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

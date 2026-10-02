@@ -19,7 +19,8 @@ exports.createRole = async (req, res) => {
     physicalRequirements,
     pointOfContact,
     contactPhone,
-    acknowledgmentText
+    acknowledgmentText,
+    restricted
   } = req.body;
 
   try {
@@ -30,7 +31,8 @@ exports.createRole = async (req, res) => {
       physicalRequirements,
       pointOfContact,
       contactPhone,
-      acknowledgmentText
+      acknowledgmentText,
+      restricted: !!restricted
     });
 
     await newRole.save();

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useId } from "react";
 import Header from "./Header";
 import "../styles/adminRoles.css";
 import "../styles/shiftForm.css";
+import "../styles/roleRequests.css";
 
 export default function AdminRoles() {
   const [roles, setRoles] = useState([]);
@@ -13,14 +14,15 @@ export default function AdminRoles() {
     responsibilities: "",
     physicalRequirements: "",
     pointOfContact: "",
-    contactPhone: ""
+    contactPhone: "",
+    restricted: false
   });
 
-  // search/sort/filter state 
+  // search/sort/filter state
   const [searchRaw, setSearchRaw] = useState("");
-  const [search, setSearch] = useState(""); 
-  const [sortBy, setSortBy] = useState("name"); 
-  const [sortDir, setSortDir] = useState("asc"); 
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("name");
+  const [sortDir, setSortDir] = useState("asc");
   const [hasContact, setHasContact] = useState(false);
   const [hasPhysicalReqs, setHasPhysicalReqs] = useState(false);
 
@@ -46,7 +48,8 @@ export default function AdminRoles() {
         responsibilities: role.responsibilities || "",
         physicalRequirements: role.physicalRequirements || "",
         pointOfContact: role.pointOfContact || "",
-        contactPhone: role.contactPhone || ""
+        contactPhone: role.contactPhone || "",
+        restricted: !!role.restricted
       });
     } else {
       setEditingId(null);
@@ -56,7 +59,8 @@ export default function AdminRoles() {
         responsibilities: "",
         physicalRequirements: "",
         pointOfContact: "",
-        contactPhone: ""
+        contactPhone: "",
+        restricted: false
       });
     }
     setFormVisible(true);
@@ -65,8 +69,8 @@ export default function AdminRoles() {
   const closeForm = () => setFormVisible(false);
 
   const handleChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
 
   const handleSubmit = async e => {
@@ -143,7 +147,7 @@ export default function AdminRoles() {
         const bVal = (b[by] || "").toString().toLowerCase();
         if (aVal < bVal) return -1 * dir;
         if (aVal > bVal) return 1 * dir;
-  
+
         const aName = (a.name || "").toLowerCase();
         const bName = (b.name || "").toLowerCase();
         if (aName < bName) return -1;
@@ -294,6 +298,14 @@ export default function AdminRoles() {
                         📍 {role.location}
                       </div>
                     )}
+
+                    {role.restricted && (
+                      <div className="modern-card-tags-row">
+                        <span className="restricted-role-tag" title="Volunteers must be approved before they can sign up">
+                          🔒 Restricted
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Card Content */}
@@ -416,6 +428,20 @@ export default function AdminRoles() {
                         placeholder="(555) 123-4567"
                       />
                     </div>
+                  </div>
+
+                  <div className="modern-form-group">
+                    <label className="restricted-checkbox-label">
+                      <input
+                        type="checkbox"
+                        name="restricted"
+                        checked={formData.restricted}
+                        onChange={handleChange}
+                      />
+                      <span>
+                        🔒 Restricted role — volunteers must request and be approved before they can sign up for shifts under this role.
+                      </span>
+                    </label>
                   </div>
 
                   <div className="modern-form-actions">

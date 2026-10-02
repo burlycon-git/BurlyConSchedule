@@ -17,9 +17,9 @@
   gap: 0.25rem;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #fbbf24;
-  background: rgba(251, 191, 36, 0.12);
-  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #92400e;
+  background: rgba(251, 191, 36, 0.18);
+  border: 1px solid rgba(217, 119, 6, 0.4);
   border-radius: 999px;
   padding: 0.2rem 0.65rem;
 }
@@ -29,6 +29,21 @@
   align-items: flex-start;
   gap: 0.5rem;
   line-height: 1.4;
+  color: #374151;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.restricted-checkbox-label span {
+  color: #374151;
+}
+
+.restricted-checkbox-label input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+  accent-color: #7c3aed;
 }
 
 /* --- AdminRoleView.jsx: pending requests + approved volunteers panels --- */
@@ -116,6 +131,31 @@
 .role-request-empty {
   color: rgba(249, 168, 212, 0.6);
   font-size: 0.9rem;
+}
+
+/* --- AdminRoleView.jsx: flag for volunteers already signed up for a
+   shift whose role is now restricted but who were never approved (signed
+   up before the role was marked restricted, or a request was never
+   submitted/approved). Shown on the dark timeline card background, so
+   unlike .restricted-role-tag above it keeps the lighter amber. --- */
+
+.volunteer-contact-card-unapproved {
+  border-color: rgba(251, 191, 36, 0.5) !important;
+}
+
+.volunteer-unapproved-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  vertical-align: middle;
 }
 
 /* --- VolunteerShifts.jsx: Request Access button + pending state --- */

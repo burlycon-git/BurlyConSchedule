@@ -167,6 +167,40 @@ export default function AdminRoleView() {
     }
   };
 
+  // Approve a volunteer who's already signed up for a shift under this
+  // restricted role but was never approved (signed up before it became
+  // restricted, or never submitted a RoleRequest). Same endpoint the
+  // revoke action below uses, just with approved: true -- see userRoutes
+  // for the notification this triggers.
+  const handleApproveExisting = async (volunteer) => {
+    const name = volunteer.preferredName || volunteer.email || "this volunteer";
+    if (!window.confirm(`Approve ${name} for ${roleName}?`)) return;
+    setRevokingUserId(volunteer._id); // reuse the same "busy" flag/spinner path
+    try {
+      const res = await fetch(`${API_BASE}/api/users/${volunteer._id}/approved-roles`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        body: JSON.stringify({ roleName, approved: true }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setShifts((prev) =>
+        prev.map((s) => ({
+          ...s,
+          volunteersRegistered: (s.volunteersRegistered || []).map((v) =>
+            v._id === volunteer._id
+              ? { ...v, approvedRoles: [...new Set([...(v.approvedRoles || []), roleName])] }
+              : v
+          ),
+        }))
+      );
+      loadRoleRequestData(); // refresh "Currently Approved" panel too
+    } catch (e) {
+      alert(`Failed to approve: ${e.message}`);
+    } finally {
+      setRevokingUserId(null);
+    }
+  };
+
   const handleRevokeApproval = async (userId) => {
     if (!window.confirm("Revoke this volunteer's approval for this role?")) return;
     setRevokingUserId(userId);
@@ -663,9 +697,11 @@ export default function AdminRoleView() {
               onEdit={handleEdit}
               onDelete={openDeleteDialog}
               onRemoveVolunteer={handleRemoveVolunteer}
+              onApproveVolunteer={handleApproveExisting}
               removingVolunteerId={removingVolunteerId}
               formatTime={formatTime}
               formatPhone={formatPhone}
+              restricted={!!roleInfo?.restricted}
             />
           </>
         )}
@@ -691,6 +727,8 @@ export default function AdminRoleView() {
               onSave={handleSaveEdit}
               formatDateLabel={formatDateLabel}
               formatPhone={formatPhone}
+              restricted={!!roleInfo?.restricted}
+              onApproveVolunteer={handleApproveExisting}
             />
           </div>
         </div>
@@ -852,9 +890,11 @@ function TimelineView({
   onEdit,
   onDelete,
   onRemoveVolunteer,
+  onApproveVolunteer,
   removingVolunteerId,
   formatTime,
   formatPhone,
+  restricted,
 }) {
   const [expandedShift, setExpandedShift] = useState(null);
 
@@ -997,15 +1037,24 @@ function TimelineView({
                 {regs.length > 0 ? (
                   <>
                     <ul className="timeline-vol-list">
-                      {visibleRegs.map((v) => (
-                        <VolunteerContactCard
-                          key={v?._id || v?.id || v?.email}
-                          volunteer={v}
-                          formatPhone={formatPhone}
-                          onRemove={onRemoveVolunteer ? () => onRemoveVolunteer(shift, v) : null}
-                          removing={removingVolunteerId === v?._id}
-                        />
-                      ))}
+                      {visibleRegs.map((v) => {
+                        const isUnapproved =
+                          restricted &&
+                          !(Array.isArray(v?.approvedRoles) && v.approvedRoles.includes(shift.role));
+                        return (
+                          <VolunteerContactCard
+                            key={v?._id || v?.id || v?.email}
+                            volunteer={v}
+                            formatPhone={formatPhone}
+                            onRemove={onRemoveVolunteer ? () => onRemoveVolunteer(shift, v) : null}
+                            onApprove={
+                              isUnapproved && onApproveVolunteer ? () => onApproveVolunteer(v) : null
+                            }
+                            removing={removingVolunteerId === v?._id}
+                            unapproved={isUnapproved}
+                          />
+                        );
+                      })}
                     </ul>
                     {hasMoreVolunteers && (
                       <button
@@ -1039,7 +1088,7 @@ function TimelineView({
   );
 }
 
-function ShiftEditForm({ shift, formData, setFormData, eventDates, onCancel, onSave, formatDateLabel, formatPhone }) {
+function ShiftEditForm({ shift, formData, setFormData, eventDates, onCancel, onSave, formatDateLabel, formatPhone, restricted, onApproveVolunteer }) {
   const filled = shift.volunteersRegistered?.length || 0;
   return (
     <div className="timeline-edit-form" onClick={(e) => e.stopPropagation()}>
@@ -1052,13 +1101,22 @@ function ShiftEditForm({ shift, formData, setFormData, eventDates, onCancel, onS
             <strong>Reach out to:</strong>
             <p className="role-view-contact-hint">👇 Tap a phone or email to reach out</p>
             <ul>
-              {shift.volunteersRegistered.map((v) => (
-                <VolunteerContactCard
-                  key={v?._id || v?.id || v?.email}
-                  volunteer={v}
-                  formatPhone={formatPhone}
-                />
-              ))}
+              {shift.volunteersRegistered.map((v) => {
+                const isUnapproved =
+                  restricted &&
+                  !(Array.isArray(v?.approvedRoles) && v.approvedRoles.includes(shift.role));
+                return (
+                  <VolunteerContactCard
+                    key={v?._id || v?.id || v?.email}
+                    volunteer={v}
+                    formatPhone={formatPhone}
+                    unapproved={isUnapproved}
+                    onApprove={
+                      isUnapproved && onApproveVolunteer ? () => onApproveVolunteer(v) : null
+                    }
+                  />
+                );
+              })}
             </ul>
           </div>
         </>
@@ -1108,7 +1166,7 @@ function ShiftEditForm({ shift, formData, setFormData, eventDates, onCancel, onS
   );
 }
 
-function VolunteerContactCard({ volunteer, formatPhone, onRemove, removing }) {
+function VolunteerContactCard({ volunteer, formatPhone, onRemove, onApprove, removing, unapproved }) {
   const v = volunteer || {};
   const name = v.preferredName || v.name || v.email || "Volunteer";
   const phone = v.phone;
@@ -1117,21 +1175,45 @@ function VolunteerContactCard({ volunteer, formatPhone, onRemove, removing }) {
   const emailHref = email ? `mailto:${email}` : null;
 
   return (
-    <li className="volunteer-contact-card">
+    <li className={`volunteer-contact-card${unapproved ? " volunteer-contact-card-unapproved" : ""}`}>
       <div className="volunteer-contact-top">
-        <div className="volunteer-contact-name">👤 {name}</div>
-        {onRemove && (
-          <button
-            type="button"
-            className="volunteer-contact-remove"
-            onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            disabled={removing}
-            title="Remove from this shift"
-            aria-label="Remove from this shift"
-          >
-            {removing ? "…" : "✕"}
-          </button>
-        )}
+        <div className="volunteer-contact-name">
+          👤 {name}
+          {unapproved && (
+            <span
+              className="volunteer-unapproved-tag"
+              title="Signed up before this role required approval, or was never approved. They are NOT in approvedRoles for this role."
+            >
+              ⚠️ Unapproved
+            </span>
+          )}
+        </div>
+        <div className="volunteer-contact-top-actions">
+          {onApprove && (
+            <button
+              type="button"
+              className="volunteer-contact-approve"
+              onClick={(e) => { e.stopPropagation(); onApprove(); }}
+              disabled={removing}
+              title="Approve this volunteer for this restricted role"
+              aria-label="Approve for this role"
+            >
+              {removing ? "…" : "✓ Approve"}
+            </button>
+          )}
+          {onRemove && (
+            <button
+              type="button"
+              className="volunteer-contact-remove"
+              onClick={(e) => { e.stopPropagation(); onRemove(); }}
+              disabled={removing}
+              title="Remove from this shift"
+              aria-label="Remove from this shift"
+            >
+              {removing ? "…" : "✕"}
+            </button>
+          )}
+        </div>
       </div>
       <div className="volunteer-contact-methods">
         {phone && (
