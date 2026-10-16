@@ -31,18 +31,16 @@ router.get("/role-stats", async (req, res) => {
           criticalShifts: 0,
         };
       }
-      const registered = shift.volunteersRegistered?.length || 0;
-      const needed = shift.volunteersNeeded || 0;
-      const filled = registered;
-      const capacity = registered + needed;
+const filled = shift.volunteersRegistered?.length || 0;
+const needed = shift.volunteersNeeded || 0; // total target headcount
 
-      statsByRole[roleName].totalShifts += 1;
-      statsByRole[roleName].totalCapacity += capacity;
-      statsByRole[roleName].totalFilled += filled;
-      statsByRole[roleName].totalUnfilled += needed;
-      if (needed > 0 && registered === 0) {
-        statsByRole[roleName].criticalShifts += 1;
-      }
+statsByRole[roleName].totalShifts += 1;
+statsByRole[roleName].totalCapacity += needed;
+statsByRole[roleName].totalFilled += filled;
+statsByRole[roleName].totalUnfilled += Math.max(0, needed - filled);
+if (needed > 0 && filled === 0) {
+  statsByRole[roleName].criticalShifts += 1;
+}
     });
 
     // Merge defined roles with stats (so roles with no shifts still appear)
