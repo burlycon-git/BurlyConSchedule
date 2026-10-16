@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "./Header";
 import "../styles/adminVolunteers.css";
@@ -11,14 +11,22 @@ export default function AdminVolunteers() {
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState("hours");
   const [scope, setScope] = useState("currentEvent");
+  const [deptFilter, setDeptFilter] = useState("all");
   const [phoneNumbers, setPhoneNumbers] = useState({});
+  const [copied, setCopied] = useState(false);
+  // null = closed. Otherwise { count, subject, message, sending, result, error }
+  const [emailModal, setEmailModal] = useState(null);
+
+  // Ids we've already requested a phone for, so refreshes don't re-fetch
+  // every volunteer from FusionAuth.
+  const phoneRequested = useRef(new Set());
 
   // Check user role
   const isAdmin = hasRole("Admin");
   const isLead = hasRole("Lead");
   const canAccessPage = isAdmin || isLead;
 
-  // Redirect 
+  // Redirect
   useEffect(() => {
     if (!canAccessPage) {
       navigate("/");
@@ -31,41 +39,49 @@ export default function AdminVolunteers() {
     Authorization: `Bearer ${localStorage.getItem("access_token")}`,
   });
 
-  const refresh = useCallback(() => {
-    setLoading(true);
-    const query = scope === "allTime" ? "?scope=allTime" : "";
-    fetch(API(`/api/admin/volunteers${query}`), { headers: authHeader() })
-      .then((res) => res.json())
-      .then((data) => {
-        setVolunteers(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching volunteers:", err);
-        setLoading(false);
-      });
-  }, [scope]);
+  // silent = true skips the full-page loading state (used after a checkbox
+  // toggle so the whole list doesn't flash).
+  const refresh = useCallback(
+    (silent = false) => {
+      if (!silent) setLoading(true);
+      const query = scope === "allTime" ? "?scope=allTime" : "";
+      fetch(API(`/api/admin/volunteers${query}`), { headers: authHeader() })
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          setVolunteers(Array.isArray(data) ? data : []);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("Error fetching volunteers:", err);
+          setLoading(false);
+        });
+    },
+    [scope]
+  );
 
-  // Fetch phone numbers 
+  // Fetch phone numbers (once per volunteer)
   useEffect(() => {
     if (volunteers.length === 0) return;
 
     volunteers.forEach(async (vol) => {
+      const id = vol._id || vol.id;
+      if (phoneRequested.current.has(id)) return;
+      phoneRequested.current.add(id);
       try {
-        const res = await fetch(API(`/api/admin/users/${vol._id || vol.id}/phone`), {
-          headers: authHeader()
+        const res = await fetch(API(`/api/admin/users/${id}/phone`), {
+          headers: authHeader(),
         });
         if (res.ok) {
           const data = await res.json();
           if (data.mobilePhone) {
-            setPhoneNumbers(prev => ({
-              ...prev,
-              [vol._id || vol.id]: data.mobilePhone
-            }));
+            setPhoneNumbers((prev) => ({ ...prev, [id]: data.mobilePhone }));
           }
         }
       } catch (err) {
-        console.error(`Error fetching phone for ${vol._id || vol.id}:`, err);
+        console.error(`Error fetching phone for ${id}:`, err);
       }
     });
   }, [volunteers]);
@@ -78,7 +94,6 @@ export default function AdminVolunteers() {
     refresh();
   }, [canAccessPage, refresh]);
 
-
   async function toggleNoShow(userId, checked) {
     const r = await fetch(API(`/api/users/${userId}/noShow`), {
       method: "PATCH",
@@ -90,7 +105,7 @@ export default function AdminVolunteers() {
       alert(d.error || "Failed to update no-show");
       return;
     }
-    refresh();
+    refresh(true);
   }
 
   async function toggleRestrict(userId, checked) {
@@ -105,14 +120,21 @@ export default function AdminVolunteers() {
       alert(d.error || "Failed to update restriction");
       return;
     }
-    refresh();
+    refresh(true);
   }
 
+  // All departments that appear in the loaded roster
+  const departments = [
+    ...new Set(volunteers.flatMap((v) => (v.shifts || []).map((s) => s.role))),
+  ].sort();
+
   const filteredVolunteers = volunteers.filter((vol) => {
+    const inDept =
+      deptFilter === "all" || (vol.shifts || []).some((s) => s.role === deptFilter);
     const name = (vol.preferredName || vol.name || "").toLowerCase();
     const email = (vol.email || "").toLowerCase();
     const q = searchTerm.toLowerCase();
-    return name.includes(q) || email.includes(q);
+    return inDept && (name.includes(q) || email.includes(q));
   });
 
   const sortedVolunteers = [...filteredVolunteers].sort((a, b) => {
@@ -131,6 +153,69 @@ export default function AdminVolunteers() {
     }
   });
 
+  // ---- Email helpers ----
+  const emailList = [
+    ...new Set(sortedVolunteers.map((v) => (v.email || "").trim()).filter(Boolean)),
+  ];
+
+  async function copyEmails() {
+    const text = emailList.join(", ");
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt("Copy these addresses:", text);
+    }
+  }
+
+  // Leads can only email a specific department (the server enforces which
+  // ones); admins can email a department or everyone.
+  const canEmail = isAdmin || (isLead && deptFilter !== "all");
+
+  async function openEmailModal() {
+    setEmailModal({ count: null, subject: "", message: "", sending: false, result: null, error: null });
+    try {
+      const r = await fetch(API("/api/admin/volunteers/broadcast"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        body: JSON.stringify({ department: deptFilter, dryRun: true }),
+      });
+      const d = await r.json().catch(() => ({}));
+      setEmailModal((m) =>
+        m && { ...m, count: r.ok ? d.count : 0, error: r.ok ? null : d.message || `HTTP ${r.status}` }
+      );
+    } catch (e) {
+      setEmailModal((m) => m && { ...m, count: 0, error: e.message });
+    }
+  }
+
+  async function sendBroadcast() {
+    if (!emailModal) return;
+    if (!window.confirm(`Send this email to ${emailModal.count} volunteer(s)?`)) return;
+    setEmailModal((m) => ({ ...m, sending: true, error: null }));
+    try {
+      const r = await fetch(API("/api/admin/volunteers/broadcast"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        body: JSON.stringify({
+          department: deptFilter,
+          subject: emailModal.subject,
+          message: emailModal.message,
+        }),
+      });
+      const d = await r.json().catch(() => ({}));
+      setEmailModal((m) => ({
+        ...m,
+        sending: false,
+        result: r.ok ? d : null,
+        error: r.ok ? null : d.message || `HTTP ${r.status}`,
+      }));
+    } catch (e) {
+      setEmailModal((m) => ({ ...m, sending: false, error: e.message }));
+    }
+  }
+
   const formatTime = (timeStr) => {
     if (!timeStr || typeof timeStr !== "string" || !timeStr.includes(":")) return timeStr;
     const [hour, min] = timeStr.split(":");
@@ -141,8 +226,30 @@ export default function AdminVolunteers() {
   };
 
   const totalVolunteers = volunteers.length;
-  const totalHours = volunteers.reduce((sum, vol) => sum + (vol.totalHours || 0), 0);
+  const totalHours =
+    Math.round(volunteers.reduce((sum, vol) => sum + (vol.totalHours || 0), 0) * 100) / 100;
   const activeVolunteers = volunteers.filter((vol) => (vol.shifts?.length || 0) > 0).length;
+
+  // Inline styles for the email modal so this file doesn't depend on
+  // another page's stylesheet.
+  const modalStyles = {
+    backdrop: {
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)",
+      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16,
+    },
+    box: {
+      background: "#2a1f33", border: "1px solid #6b3a73", borderRadius: 12,
+      padding: 24, width: "100%", maxWidth: 560, color: "#f3e6f7",
+      maxHeight: "90vh", overflowY: "auto",
+    },
+    input: {
+      width: "100%", boxSizing: "border-box", marginTop: 4, marginBottom: 12, padding: 10,
+      borderRadius: 8, border: "1px solid #6b3a73", background: "#1c1424", color: "#f3e6f7",
+      font: "inherit",
+    },
+    actions: { display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 },
+    error: { color: "#ff9aa8", marginBottom: 8 },
+  };
 
   return (
     <div className="modern-page-container">
@@ -226,6 +333,19 @@ export default function AdminVolunteers() {
               </select>
 
               <select
+                value={deptFilter}
+                onChange={(e) => setDeptFilter(e.target.value)}
+                className="modern-sort-select"
+              >
+                <option value="all">All departments</option>
+                {departments.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+
+              <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="modern-sort-select"
@@ -234,6 +354,30 @@ export default function AdminVolunteers() {
                 <option value="name">Sort by Name</option>
                 <option value="shifts">Sort by Shifts</option>
               </select>
+
+              <button
+                onClick={copyEmails}
+                className="modern-empty-action"
+                disabled={emailList.length === 0}
+                title="Copy the addresses of the volunteers currently shown"
+              >
+                {copied
+                  ? "✓ Copied"
+                  : `📋 Copy ${emailList.length} email${emailList.length !== 1 ? "s" : ""}`}
+              </button>
+
+              <button
+                onClick={openEmailModal}
+                className="modern-empty-action"
+                disabled={!canEmail}
+                title={
+                  canEmail
+                    ? "Email everyone signed up for this department this event"
+                    : "Pick a department first"
+                }
+              >
+                ✉️ Email {deptFilter === "all" ? "everyone" : deptFilter}
+              </button>
             </div>
           </div>
         </div>
@@ -327,81 +471,168 @@ export default function AdminVolunteers() {
                       </div>
                     )}
 
-{vol.shifts && vol.shifts.length > 0 ? (
-  <div className="modern-volunteer-shifts">
-    <h4 className="modern-shifts-title">📅 Upcoming Shifts ({vol.shifts.length})</h4>
-    {(() => {
-      // Group by date
-      const byDate = vol.shifts.reduce((acc, s) => {
-        if (!acc[s.date]) acc[s.date] = [];
-        acc[s.date].push(s);
-        return acc;
-      }, {});
+                    {vol.shifts && vol.shifts.length > 0 ? (
+                      <div className="modern-volunteer-shifts">
+                        <h4 className="modern-shifts-title">📅 Shifts ({vol.shifts.length})</h4>
+                        {(() => {
+                          // Group by date
+                          const byDate = vol.shifts.reduce((acc, s) => {
+                            if (!acc[s.date]) acc[s.date] = [];
+                            acc[s.date].push(s);
+                            return acc;
+                          }, {});
 
-      // Sort dates ascending
-      const sortedDates = Object.keys(byDate).sort();
+                          // Sort dates ascending
+                          const sortedDates = Object.keys(byDate).sort();
 
-      return sortedDates.map((date) => {
-        // Sort shifts within day by start time
-        const dayShifts = byDate[date].sort((a, b) =>
-          a.startTime.localeCompare(b.startTime)
-        );
+                          return sortedDates.map((date) => {
+                            // Sort shifts within day by start time (copy, don't mutate)
+                            const dayShifts = [...byDate[date]].sort((a, b) =>
+                              a.startTime.localeCompare(b.startTime)
+                            );
 
-        // Mark each shift as continuing from previous (same role + adjacent times)
-        const annotated = dayShifts.map((shift, i) => {
-          const prev = dayShifts[i - 1];
-          const continuesFromPrev =
-            prev &&
-            prev.role === shift.role &&
-            prev.endTime === shift.startTime;
-          const next = dayShifts[i + 1];
-          const continuesToNext =
-            next &&
-            next.role === shift.role &&
-            shift.endTime === next.startTime;
-          return { ...shift, continuesFromPrev, continuesToNext };
-        });
+                            // Mark each shift as continuing from previous (same role + adjacent times)
+                            const annotated = dayShifts.map((shift, i) => {
+                              const prev = dayShifts[i - 1];
+                              const continuesFromPrev =
+                                prev &&
+                                prev.role === shift.role &&
+                                prev.endTime === shift.startTime;
+                              const next = dayShifts[i + 1];
+                              const continuesToNext =
+                                next &&
+                                next.role === shift.role &&
+                                shift.endTime === next.startTime;
+                              return { ...shift, continuesFromPrev, continuesToNext };
+                            });
 
-        return (
-          <div key={date} className="modern-day-group">
-            <div className="modern-day-header">
-              {new Date(date + "T12:00:00").toLocaleDateString(undefined, {
-                weekday: "long",
-                month: "short",
-                day: "numeric",
-              })}
-            </div>
-            <div className="modern-day-shifts">
-              {annotated.map((shift) => (
-                <div
-                  key={shift.id}
-                  className={`modern-day-shift ${shift.continuesFromPrev ? "continues-from" : ""} ${shift.continuesToNext ? "continues-to" : ""}`}
-                >
-                  <div className="modern-day-shift-role">{shift.role}</div>
-                  <div className="modern-day-shift-time">
-                    🕒 {formatTime(shift.startTime)} – {formatTime(shift.endTime)}
+                            return (
+                              <div key={date} className="modern-day-group">
+                                <div className="modern-day-header">
+                                  {new Date(date + "T12:00:00").toLocaleDateString(undefined, {
+                                    weekday: "long",
+                                    month: "short",
+                                    day: "numeric",
+                                  })}
+                                </div>
+                                <div className="modern-day-shifts">
+                                  {annotated.map((shift) => (
+                                    <div
+                                      key={shift.id}
+                                      className={`modern-day-shift ${shift.continuesFromPrev ? "continues-from" : ""} ${shift.continuesToNext ? "continues-to" : ""}`}
+                                    >
+                                      <div className="modern-day-shift-role">{shift.role}</div>
+                                      <div className="modern-day-shift-time">
+                                        🕒 {formatTime(shift.startTime)} – {formatTime(shift.endTime)}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="modern-no-shifts">
+                        <span className="modern-no-shifts-icon">📅</span>
+                        <span className="modern-no-shifts-text">No shifts</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      });
-    })()}
-  </div>
-) : (
-  <div className="modern-no-shifts">
-    <span className="modern-no-shifts-icon">📅</span>
-    <span className="modern-no-shifts-text">No upcoming shifts</span>
-  </div>
-)}
-</div>
                 );
               })}
             </div>
           )}
         </div>
       </div>
+
+      {/* Email modal */}
+      {emailModal && (
+        <div
+          style={modalStyles.backdrop}
+          onClick={() => !emailModal.sending && setEmailModal(null)}
+        >
+          <div style={modalStyles.box} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0 }}>
+              ✉️ Email {deptFilter === "all" ? "all volunteers" : deptFilter}
+            </h3>
+
+            {emailModal.result ? (
+              <>
+                <p>
+                  Sent to <strong>{emailModal.result.sent}</strong> of{" "}
+                  <strong>{emailModal.result.total}</strong> volunteers.
+                </p>
+                {emailModal.result.failed?.length > 0 && (
+                  <div style={modalStyles.error}>
+                    {emailModal.result.failed.length} failed:
+                    <ul>
+                      {emailModal.result.failed.slice(0, 10).map((f, i) => (
+                        <li key={i}>
+                          {f.email || "batch"} — {f.error}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div style={modalStyles.actions}>
+                  <button onClick={() => setEmailModal(null)}>Close</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={{ opacity: 0.85 }}>
+                  {emailModal.count === null
+                    ? "Counting recipients…"
+                    : `Goes to ${emailModal.count} volunteer${emailModal.count !== 1 ? "s" : ""} signed up this event. Each gets their own copy, and replies come to you.`}
+                </p>
+
+                {emailModal.error && <div style={modalStyles.error}>{emailModal.error}</div>}
+
+                <label>
+                  Subject
+                  <input
+                    type="text"
+                    style={modalStyles.input}
+                    value={emailModal.subject}
+                    onChange={(e) => setEmailModal((m) => ({ ...m, subject: e.target.value }))}
+                    disabled={emailModal.sending}
+                  />
+                </label>
+
+                <label>
+                  Message
+                  <textarea
+                    rows={8}
+                    style={modalStyles.input}
+                    value={emailModal.message}
+                    onChange={(e) => setEmailModal((m) => ({ ...m, message: e.target.value }))}
+                    disabled={emailModal.sending}
+                  />
+                </label>
+
+                <div style={modalStyles.actions}>
+                  <button onClick={() => setEmailModal(null)} disabled={emailModal.sending}>
+                    Cancel
+                  </button>
+                  <button
+                    onClick={sendBroadcast}
+                    disabled={
+                      emailModal.sending ||
+                      !emailModal.count ||
+                      !emailModal.subject.trim() ||
+                      !emailModal.message.trim()
+                    }
+                  >
+                    {emailModal.sending ? "Sending…" : `Send to ${emailModal.count ?? "…"}`}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

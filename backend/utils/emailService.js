@@ -39,7 +39,9 @@ class EmailService {
     return `${displayHour}:${min} ${suffix}`;
   }
 
-  async send(to, subject, text) {
+  // replyTo is optional -- when set, replies go there instead of to the
+  // sending address (used by broadcasts so replies reach the lead/admin).
+  async send(to, subject, text, replyTo) {
     if (!this.resend) {
       console.warn("RESEND_API_KEY not set -- email not sent:", subject);
       return { success: false, error: "Email isn't configured yet (RESEND_API_KEY missing)" };
@@ -57,6 +59,7 @@ class EmailService {
         to,
         subject,
         text,
+        ...(replyTo && { replyTo }),
       });
 
       if (error) {
@@ -70,6 +73,63 @@ class EmailService {
       console.error("Email sending failed:", error);
       return { success: false, error: error.message, to };
     }
+  }
+
+  // ---------- Broadcast to a group of volunteers (admin/lead-initiated) ----------
+  //
+  // One email per recipient via Resend's batch endpoint (max 100 per call),
+  // so nobody sees anyone else's address and each copy can be personalized.
+  // Replies go to replyTo (the sender), not to the notifications@ address.
+  //
+  // recipients: [{ email, name }]
+  // Note: Resend validates a batch as a whole, so one bad address fails its
+  // whole chunk of up to 100 -- `failed` reports per chunk accordingly.
+  // Also: Resend's free tier caps sends per day (and per month); a big
+  // broadcast counts against the same quota as reminders/digests.
+  async sendBroadcast(recipients, { subject, message, replyTo, senderName, department }) {
+    if (!this.resend) {
+      return { sent: 0, failed: [{ error: "Email isn't configured yet (RESEND_API_KEY missing)" }] };
+    }
+    if (!process.env.RESEND_FROM_EMAIL) {
+      return { sent: 0, failed: [{ error: "RESEND_FROM_EMAIL isn't set -- no verified sender to send from" }] };
+    }
+
+    const from = `${COORDINATOR_NAME} <${process.env.RESEND_FROM_EMAIL}>`;
+    const footer =
+      `\n\n--\n${senderName || COORDINATOR_NAME}` +
+      `${department && department !== "all" ? ` (${department})` : ""}\n` +
+      `You're getting this because you signed up to volunteer at BurlyCon. ` +
+      `Reply to this email to reach ${senderName || "us"}.`;
+
+    const result = { sent: 0, failed: [] };
+
+    for (let i = 0; i < recipients.length; i += 100) {
+      const chunk = recipients.slice(i, i + 100);
+      const payload = chunk.map((r) => ({
+        from,
+        to: r.email,
+        subject,
+        text: `${r.name ? `Hi ${r.name},` : "Hi,"}\n\n${message}${footer}`,
+        ...(replyTo && { replyTo }),
+      }));
+
+      try {
+        const { error } = await this.resend.batch.send(payload);
+        if (error) {
+          console.error("Broadcast batch failed:", error);
+          chunk.forEach((r) =>
+            result.failed.push({ email: r.email, error: error.message || String(error) })
+          );
+        } else {
+          result.sent += chunk.length;
+        }
+      } catch (e) {
+        console.error("Broadcast batch failed:", e);
+        chunk.forEach((r) => result.failed.push({ email: r.email, error: e.message }));
+      }
+    }
+
+    return result;
   }
 
   // ---------- Shift reminder (sent ~1hr before a shift starts) ----------

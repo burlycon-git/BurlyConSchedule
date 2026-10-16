@@ -3,6 +3,7 @@ const Shift = require("../models/FlexibleShift");
 const fusionAuthService = require("../utils/fusionAuthService");
 const Event = require("../models/Event");
 const ContactMessage = require("../models/ContactMessage");
+const emailService = require("../utils/emailService");
 
 exports.getVolunteers = async (req, res) => {
   try {
@@ -79,6 +80,102 @@ exports.getUserPhone = async (req, res) => {
   } catch (error) {
     console.error('Error fetching user phone:', error);
     res.status(500).json({ error: 'Failed to retrieve user' });
+  }
+};
+
+// POST email every volunteer signed up (this event) for one department, or
+// for everyone. Recipients are resolved server-side -- the browser only says
+// which department -- so a client can't make this send to arbitrary
+// addresses.
+//
+// Body: { department: "Hospitality Volunteer" | "all",
+//         subject, message, dryRun?: boolean }
+//   dryRun: true  -> returns { count } without sending (used by the UI to
+//                    show "Goes to N volunteers" before confirming).
+//
+// Access: Admins can email any department or "all". Leads can only email
+// departments they've pinned (User.pinnedRoles).
+exports.broadcastToVolunteers = async (req, res) => {
+  try {
+    const { department = "all", subject, message, dryRun = false } = req.body;
+
+    const activeEvent = await Event.findOne({ isActive: true }).lean();
+    if (!activeEvent) {
+      return res.status(404).json({ message: "No active event found" });
+    }
+
+    const sender = await User.findById(req.user?._id)
+      .select("preferredName email pinnedRoles")
+      .lean();
+
+    // ADAPT: use however your auth middleware exposes roles on req.user.
+    const isAdminUser = Array.isArray(req.user?.roles) && req.user.roles.includes("Admin");
+
+    if (!isAdminUser) {
+      const allowed = sender?.pinnedRoles || [];
+      if (department === "all" || !allowed.includes(department)) {
+        return res
+          .status(403)
+          .json({ message: "You can only email departments you're responsible for" });
+      }
+    }
+
+    const shifts = await Shift.find({
+      eventId: activeEvent._id,
+      ...(department !== "all" && { role: department }),
+    })
+      .select("volunteersRegistered")
+      .lean();
+
+    const ids = [
+      ...new Set(shifts.flatMap((s) => (s.volunteersRegistered || []).map(String))),
+    ];
+
+    const users = await User.find({
+      _id: { $in: ids },
+      email: { $nin: [null, ""] },
+    })
+      .select("preferredName email")
+      .lean();
+
+    // De-dupe by email (case-insensitive)
+    const seen = new Set();
+    const recipients = users
+      .filter((u) => {
+        const key = u.email.trim().toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map((u) => ({ email: u.email.trim(), name: u.preferredName }));
+
+    if (dryRun) {
+      return res.json({ count: recipients.length, department });
+    }
+
+    if (!subject?.trim() || !message?.trim()) {
+      return res.status(400).json({ message: "Subject and message are required" });
+    }
+    if (recipients.length === 0) {
+      return res.status(400).json({ message: "No recipients for that department" });
+    }
+
+    const result = await emailService.sendBroadcast(recipients, {
+      subject: subject.trim(),
+      message: message.trim(),
+      replyTo: sender?.email,
+      senderName: sender?.preferredName,
+      department,
+    });
+
+    console.log(
+      `Broadcast by ${sender?.email} to "${department}": ${result.sent} sent, ${result.failed.length} failed`
+    );
+
+    res.json({ total: recipients.length, ...result });
+  } catch (err) {
+    console.error("Error sending broadcast:", err);
+    res.status(500).json({ message: "Server error sending broadcast" });
   }
 };
 
