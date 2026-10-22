@@ -4,14 +4,14 @@ import "../styles/roleRequests.css";
 import Header from "./Header";
 import { getUserId } from "../utils/authUtils";
 
-const PLACEHOLDER = "/schedule-coming-soon.svg";
+//const PLACEHOLDER = "/schedule-coming-soon.svg";
 
 const scheduleImages = {
   "2026-11-04": "https://i.ibb.co/JjXqf5kM/Wedneday-Image.png",
-  "2026-11-05": PLACEHOLDER,
-  "2026-11-06": PLACEHOLDER,
-  "2026-11-07": PLACEHOLDER,
-  "2026-11-08": PLACEHOLDER,
+  "2026-11-05": "https://burlycon.org/wp-content/uploads/2026/10/BurlyCon-Nov-5-Schedule.png",
+  "2026-11-06": "https://burlycon.org/wp-content/uploads/2026/10/BurlyCon-Nov-6-Scehdule.png",
+  "2026-11-07": "https://burlycon.org/wp-content/uploads/2026/10/BurlyCon-Nov-7-Schedule.png",
+  "2026-11-08": "https://burlycon.org/wp-content/uploads/2026/10/BurlyCon-Nov-8-Schedule.png",
 };
 
 // Bucket a shift's start time into a daypart
